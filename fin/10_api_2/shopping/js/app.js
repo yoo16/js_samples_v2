@@ -9,10 +9,6 @@ const cartOpenBtn = document.getElementById('cart-open-btn');
 const cartCloseBtn = document.getElementById('cart-close-btn');
 const cartModal = document.getElementById('cart-modal');
 
-// カートAPIのベースURL
-const cartApiURL = 'api/cart/';
-const productsApiURL = 'api/products/get.php';
-
 // 商品データ
 let allProducts = [];
 
@@ -21,6 +17,11 @@ async function fetchProducts() {
     // ローディング表示
     loader.classList.remove('hidden');
     try {
+        // 商品データAPIのURL
+        // const productsApiURL = 'https://fakestoreapi.com/products';
+        // ローカルPHP APIのURLを指定: api/products/get.php
+        const productsApiURL = 'api/products/get.php';
+
         // PHP APIから商品データを取得
         const response = await fetch(productsApiURL);
         // APIレスポンスをチェック
@@ -101,7 +102,7 @@ function showDetail(productId) {
 // 初期カート情報の取得
 async function fetchInitialCart() {
     try {
-        const uri = cartApiURL + "get.php";
+        const uri = "api/cart/get.php";
         // TODO: GETリクエストで現在のカート情報を取得: fetchAPI
         const response = await fetch(uri);
         // TODO: JSON形式でレスポンスを取得: json()
@@ -121,7 +122,7 @@ async function fetchInitialCart() {
 // PHP APIへ送信
 async function addToCart(productId) {
     try {
-        const uri = cartApiURL + "add.php";
+        const uri = "api/cart/add.php";
         // TODO: POSTリクエストで商品ID(productId)を JSONで送信
         const response = await fetch(uri, {
             method: 'POST',
@@ -192,7 +193,7 @@ function updateCartList(cartObj) {
 
 // 個数変更関数
 async function updateQuantity(productId, qty) {
-    const uri = cartApiURL + "update.php";
+    const uri = "api/cart/update.php";
     const nextQty = Math.max(1, parseInt(qty, 10) || 1);
     // POSTリクエストで商品ID(productId)と個数(qty)をJSONで送信
     const response = await fetch(uri, {
@@ -213,7 +214,7 @@ async function updateQuantity(productId, qty) {
 
 // カートから商品を削除
 async function removeItem(productId) {
-    const uri = cartApiURL + "remove.php";
+    const uri = "api/cart/remove.php";
     // TODO: POSTリクエストで商品ID(productId)を送信
     if (!confirm('商品ID ' + productId + ' を削除しますか？')) {
         return;
