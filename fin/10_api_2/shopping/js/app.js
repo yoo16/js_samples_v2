@@ -11,6 +11,7 @@ const cartModal = document.getElementById('cart-modal');
 
 // カートAPIのベースURL
 const cartApiURL = 'api/cart/';
+const productsApiURL = 'api/products/get.php';
 
 // 商品データ
 let allProducts = [];
@@ -20,10 +21,8 @@ async function fetchProducts() {
     // ローディング表示
     loader.classList.remove('hidden');
     try {
-        // 商品データのAPI
-        const uri = 'https://fakestoreapi.com/products';
-        // TODO: APIから商品データを取得: fetchAPI
-        const response = await fetch(uri);
+        // PHP APIから商品データを取得
+        const response = await fetch(productsApiURL);
         // APIレスポンスをチェック
         if (!response.ok) showFlash('商品データの取得に失敗しました');
         // TODO: JSON形式でレスポンスを取得: json()

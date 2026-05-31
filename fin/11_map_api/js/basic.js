@@ -13,23 +13,7 @@ const defaultPlace = {
   address: '東京都千代田区丸の内1丁目',
 };
 
-const sampleSpots = [
-  {
-    name: '東京タワー',
-    position: { lat: 35.658581, lng: 139.745433 },
-    address: '東京都港区芝公園4丁目2-8',
-  },
-  {
-    name: '浅草寺',
-    position: { lat: 35.714765, lng: 139.796655 },
-    address: '東京都台東区浅草2丁目3-1',
-  },
-  {
-    name: '新宿御苑',
-    position: { lat: 35.685176, lng: 139.710052 },
-    address: '東京都新宿区内藤町11',
-  },
-];
+const spotsApiUrl = 'api/spots.php';
 
 function loadGoogleMapsApi() {
   const apiKey = window.GOOGLE_MAPS_API_KEY;
@@ -65,7 +49,7 @@ window.initMap = function initMap() {
   });
 
   marker = createMarker(defaultPlace);
-  addSampleSpotMarkers();
+  loadSampleSpots();
   bindEvents();
   setMessage('初期表示は東京駅です。住所や施設名で検索できます。');
 };
@@ -99,7 +83,7 @@ function searchAddress() {
 
   geocoder.geocode({ address }, (results, status) => {
     if (status !== 'OK' || !results[0]) {
-      setMessage('住所が見つかりませんでした。別のキーワードで試してください。', true);
+      setMessage('住所が見つかりませんでした。デモキーではGeocoding API の制限があります。', true);
       return;
     }
 
@@ -170,8 +154,33 @@ function createMarker(place) {
   return nextMarker;
 }
 
-function addSampleSpotMarkers() {
-  sampleSpots.forEach((spot) => {
+async function loadSampleSpots() {
+  try {
+    const response = await fetch(spotsApiUrl);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const spots = await response.json();
+
+    if (!Array.isArray(spots)) {
+      throw new Error('Invalid spots data');
+    }
+
+    addSampleSpotMarkers(spots);
+  } catch (error) {
+    console.error(error);
+    setMessage('サンプルスポットの取得に失敗しました。PHP サーバー経由で開いているか確認してください。', true);
+  }
+}
+
+function addSampleSpotMarkers(spots) {
+  spots.forEach((spot) => {
+    if (!isValidSpot(spot)) {
+      return;
+    }
+
     const spotMarker = new google.maps.Marker({
       position: spot.position,
       map,
@@ -190,6 +199,16 @@ function addSampleSpotMarkers() {
       openInfoWindow(spot, spotMarker);
     });
   });
+}
+
+function isValidSpot(spot) {
+  return (
+    spot
+    && typeof spot.name === 'string'
+    && typeof spot.address === 'string'
+    && typeof spot.position?.lat === 'number'
+    && typeof spot.position?.lng === 'number'
+  );
 }
 
 function openInfoWindow(place, targetMarker) {
