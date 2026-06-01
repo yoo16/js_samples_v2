@@ -127,7 +127,7 @@ async function addToCart(productId) {
         const response = await fetch(uri, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productId }),
+            body: JSON.stringify({ id: productId }),
         });
         // JSON形式でレスポンスを取得
         const result = await response.json();

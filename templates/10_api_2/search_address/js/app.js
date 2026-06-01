@@ -63,8 +63,6 @@ const searchHandler = async () => {
     }
 
     errorDisplay.innerHTML = '';
-    // モーダルを表示
-    loadingModal.classList.remove('hidden');
 
     try {
         // TODO: 郵便番号検索APIにアクセス

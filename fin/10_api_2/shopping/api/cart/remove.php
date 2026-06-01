@@ -3,7 +3,15 @@ session_start();
 header('Content-Type: application/json');
 
 $input = json_decode(file_get_contents('php://input'), true);
-$id = $input['id'] ?? ($input['productId'] ?? null);
+$id = $input['id'] ?? null;
+
+if (!$id) {
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Product ID is required'
+    ]);
+    exit;
+}
 
 if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];

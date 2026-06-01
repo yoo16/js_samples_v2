@@ -6,6 +6,14 @@ $input = json_decode(file_get_contents('php://input'), true);
 $id = $input['id'] ?? null;
 $qty = intval($input['qty'] ?? 0);
 
+if (!$id) {
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Product ID is required'
+    ]);
+    exit;
+}
+
 if ($id && isset($_SESSION['cart'])) {
     if ($qty > 0) {
         $_SESSION['cart'][$id] = $qty;
