@@ -1,5 +1,5 @@
 // ============================================================
-// map_features.js - 地図表示切替・スタイル変更・描画のサンプル
+// map.js - 地図表示切替・スタイル変更・描画のサンプル
 // ============================================================
 
 let map;
@@ -12,10 +12,13 @@ let polygonPath = [];
 let lineOverlay;
 let polygonOverlay;
 let circleOverlay;
+// クリックして追加したマーカーを保存する配列
 const clickMarkers = [];
 
+// 東京駅の座標
 const tokyo = { lat: 35.681236, lng: 139.767125 };
 
+// 地図スタイルの定義
 const mapStyles = {
   default: null,
   muted: [
@@ -37,10 +40,12 @@ const mapStyles = {
   ],
 };
 
-window.initMapFeatures = function initMapFeatures() {
+// 地図初期化関数: Google Maps API の読み込み後に呼び出される
+window.initMap = function initMap() {
   geocoder = new google.maps.Geocoder();
   infoWindow = new google.maps.InfoWindow();
 
+  // 地図の初期化
   map = new google.maps.Map(document.getElementById('map'), {
     center: tokyo,
     zoom: 14,
@@ -50,6 +55,7 @@ window.initMapFeatures = function initMapFeatures() {
     fullscreenControl: true,
   });
 
+  // 初期マーカーの設定
   selectedMarker = new google.maps.Marker({
     position: tokyo,
     map,
@@ -61,33 +67,13 @@ window.initMapFeatures = function initMapFeatures() {
   setModeMessage('マーカーモード: 地図をクリックすると地点情報を表示します。');
 };
 
-loadGoogleMapsApi();
-
-function loadGoogleMapsApi() {
-  const apiKey = window.GOOGLE_MAPS_API_KEY;
-
-  if (!apiKey || apiKey === 'YOUR_API_KEY') {
-    window.addEventListener('DOMContentLoaded', () => {
-      setModeMessage('js/config.js に Google Maps API キーを設定してください。', true);
-    });
-    return;
-  }
-
-  const script = document.createElement('script');
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=initMapFeatures`;
-  script.async = true;
-  script.defer = true;
-  script.onerror = () => {
-    setModeMessage('Google Maps API を読み込めませんでした。', true);
-  };
-  document.head.appendChild(script);
-}
-
+// イベントのバインド
 function bindEvents() {
   map.addListener('click', (event) => {
     handleMapClick(event.latLng);
   });
 
+  // 地図タイプ切替ボタンのイベント
   document.querySelectorAll('.map-type').forEach((button) => {
     button.addEventListener('click', () => {
       setMapType(button.dataset.type);
@@ -95,6 +81,7 @@ function bindEvents() {
     });
   });
 
+  // 描画モード切替ボタンのイベント
   document.querySelectorAll('.draw-mode').forEach((button) => {
     button.addEventListener('click', () => {
       activeMode = button.dataset.mode;
@@ -103,6 +90,7 @@ function bindEvents() {
     });
   });
 
+  // スタイル切替セレクトのイベント
   document.getElementById('style-select').addEventListener('change', (event) => {
     map.setOptions({ styles: mapStyles[event.target.value] });
   });
@@ -111,7 +99,9 @@ function bindEvents() {
   document.getElementById('btn-clear').addEventListener('click', clearDrawings);
 }
 
+// 地図クリック時の処理
 function handleMapClick(latLng) {
+  // マーカーモード
   if (activeMode === 'marker') {
     const position = latLng.toJSON();
     selectedMarker.setPosition(position);
@@ -120,22 +110,27 @@ function handleMapClick(latLng) {
     return;
   }
 
+  // 線描画モード
   if (activeMode === 'line') {
     addLinePoint(latLng);
     return;
   }
 
+  // 範囲描画モード
   if (activeMode === 'polygon') {
     addPolygonPoint(latLng);
     return;
   }
 
+  // 円描画モード
   drawCircle(latLng);
 }
 
+// 地図タイプの切替
 function setMapType(type) {
   map.setMapTypeId(type);
 
+  // ハイブリッド
   if (type === 'hybrid') {
     map.setZoom(Math.max(map.getZoom(), 18));
     map.setTilt(45);
@@ -147,6 +142,7 @@ function setMapType(type) {
   map.setHeading(0);
 }
 
+// 線描画モードで点を追加
 function addLinePoint(latLng) {
   linePath.push(latLng);
   addClickMarker(latLng, `${linePath.length}`);
@@ -165,6 +161,7 @@ function addLinePoint(latLng) {
   setModeMessage(`線を描画中: ${linePath.length} 点`);
 }
 
+// 範囲描画モードで点を追加
 function addPolygonPoint(latLng) {
   polygonPath.push(latLng);
   addClickMarker(latLng, `${polygonPath.length}`);
@@ -185,6 +182,7 @@ function addPolygonPoint(latLng) {
   setModeMessage(`範囲を描画中: ${polygonPath.length} 点`);
 }
 
+// 範囲描画モードで範囲を閉じる
 function closePolygon() {
   if (polygonPath.length < 3) {
     setModeMessage('範囲を閉じるには 3 点以上クリックしてください。', true);
@@ -195,11 +193,13 @@ function closePolygon() {
   setModeMessage('範囲を閉じました。');
 }
 
+// 円描画モードで円を描く
 function drawCircle(latLng) {
   if (circleOverlay) {
     circleOverlay.setMap(null);
   }
 
+  // 半径 600m の円を描画
   circleOverlay = new google.maps.Circle({
     map,
     center: latLng,
@@ -214,6 +214,7 @@ function drawCircle(latLng) {
   setModeMessage('半径 600m の円を描画しました。');
 }
 
+// クリックした地点にマーカーを追加
 function addClickMarker(latLng, label) {
   const marker = new google.maps.Marker({
     position: latLng,
@@ -224,6 +225,7 @@ function addClickMarker(latLng, label) {
   clickMarkers.push(marker);
 }
 
+// 描画をすべて消去
 function clearDrawings() {
   linePath = [];
   polygonPath = [];
@@ -243,14 +245,17 @@ function clearDrawings() {
     circleOverlay = null;
   }
 
+  // クリックマーカーも消去
   clickMarkers.forEach((marker) => marker.setMap(null));
   clickMarkers.length = 0;
   setModeMessage('描画を消去しました。');
 }
 
+// 選択した地点の情報を表示
 function showSelectedPoint(position) {
   setPointPanel('<p>住所を取得しています...</p>');
 
+  // ジオコーディング API を使って住所を取得
   geocoder.geocode({ location: position }, (results, status) => {
     const html = `
     <dl class="grid grid-cols-2 gap-2">
@@ -265,6 +270,7 @@ function showSelectedPoint(position) {
   });
 }
 
+// 地図タイプ切替や描画モード切替のメッセージ更新
 function updateModeMessage() {
   const messages = {
     marker: 'マーカーモード: 地図をクリックすると地点情報を表示します。',
@@ -290,6 +296,7 @@ function setPointPanel(html) {
   document.getElementById('point-panel').innerHTML = html;
 }
 
+// モード切替や地図タイプ切替のメッセージ表示
 function setModeMessage(text, isError = false) {
   const message = document.getElementById('mode-message');
   message.textContent = text;
