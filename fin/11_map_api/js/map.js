@@ -61,28 +61,6 @@ window.initMapFeatures = function initMapFeatures() {
   setModeMessage('マーカーモード: 地図をクリックすると地点情報を表示します。');
 };
 
-loadGoogleMapsApi();
-
-function loadGoogleMapsApi() {
-  const apiKey = window.GOOGLE_MAPS_API_KEY;
-
-  if (!apiKey || apiKey === 'YOUR_API_KEY') {
-    window.addEventListener('DOMContentLoaded', () => {
-      setModeMessage('js/config.js に Google Maps API キーを設定してください。', true);
-    });
-    return;
-  }
-
-  const script = document.createElement('script');
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=initMapFeatures`;
-  script.async = true;
-  script.defer = true;
-  script.onerror = () => {
-    setModeMessage('Google Maps API を読み込めませんでした。', true);
-  };
-  document.head.appendChild(script);
-}
-
 function bindEvents() {
   map.addListener('click', (event) => {
     handleMapClick(event.latLng);
