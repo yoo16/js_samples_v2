@@ -6,6 +6,7 @@ let map;
 let marker;
 let geocoder;
 let infoWindow;
+let spotMarkers = [];
 
 const defaultPlace = {
   name: '東京駅',
@@ -14,26 +15,6 @@ const defaultPlace = {
 };
 
 const spotsApiUrl = 'api/spots.php';
-
-function loadGoogleMapsApi() {
-  const apiKey = window.GOOGLE_MAPS_API_KEY;
-
-  if (!apiKey || apiKey === 'YOUR_API_KEY') {
-    window.addEventListener('DOMContentLoaded', () => {
-      setMessage('js/config.js に Google Maps API キーを設定してください。', true);
-    });
-    return;
-  }
-
-  const script = document.createElement('script');
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=initMap`;
-  script.async = true;
-  script.defer = true;
-  script.onerror = () => {
-    setMessage('Google Maps API を読み込めませんでした。API キーやネットワークを確認してください。', true);
-  };
-  document.head.appendChild(script);
-}
 
 // Google Maps API の callback=initMap から呼ばれるため、window に公開する。
 window.initMap = function initMap() {
@@ -51,52 +32,11 @@ window.initMap = function initMap() {
   marker = createMarker(defaultPlace);
   loadSampleSpots();
   bindEvents();
-  setMessage('初期表示は東京駅です。住所や施設名で検索できます。');
 };
 
-loadGoogleMapsApi();
-
 function bindEvents() {
-  const addressInput = document.getElementById('address');
-  const searchButton = document.getElementById('btn-search');
   const currentButton = document.getElementById('btn-current');
-
-  searchButton.addEventListener('click', searchAddress);
   currentButton.addEventListener('click', showCurrentLocation);
-
-  addressInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      searchAddress();
-    }
-  });
-}
-
-function searchAddress() {
-  const address = document.getElementById('address').value.trim();
-
-  if (!address) {
-    setMessage('住所を入力してください。', true);
-    return;
-  }
-
-  setMessage('住所を検索しています...');
-
-  geocoder.geocode({ address }, (results, status) => {
-    if (status !== 'OK' || !results[0]) {
-      setMessage('住所が見つかりませんでした。デモキーではGeocoding API の制限があります。', true);
-      return;
-    }
-
-    const result = results[0];
-    const place = {
-      name: address,
-      position: result.geometry.location,
-      address: result.formatted_address,
-    };
-
-    moveToPlace(place, 16);
-    setMessage(`${result.formatted_address} を表示しました。`);
-  });
 }
 
 function showCurrentLocation() {
@@ -109,6 +49,7 @@ function showCurrentLocation() {
 
   navigator.geolocation.getCurrentPosition(
     (position) => {
+      // Geolocation API で取得した位置を地図に表示するためのオブジェクトを作成
       const place = {
         name: '現在地',
         position: {
@@ -118,8 +59,11 @@ function showCurrentLocation() {
         address: 'ブラウザの Geolocation API で取得した位置です。',
       };
 
+      // 地図を現在地に移動
       moveToPlace(place, 16);
-      setMessage('現在地を表示しました。');
+
+      // メッセージを更新
+      showPlaceMessage(place);
     },
     () => {
       setMessage('現在地を取得できませんでした。ブラウザの許可設定を確認してください。', true);
@@ -132,6 +76,7 @@ function showCurrentLocation() {
   );
 }
 
+// マーカーを移動して情報ウィンドウを開く
 function moveToPlace(place, zoom) {
   marker.setMap(null);
   marker = createMarker(place);
@@ -140,6 +85,7 @@ function moveToPlace(place, zoom) {
   openInfoWindow(place, marker);
 }
 
+// マーカーを作成
 function createMarker(place) {
   const nextMarker = new google.maps.Marker({
     position: place.position,
@@ -147,6 +93,7 @@ function createMarker(place) {
     title: place.name,
   });
 
+  // マーカーをクリックしたときに情報ウィンドウを開く
   nextMarker.addListener('click', () => {
     openInfoWindow(place, nextMarker);
   });
@@ -154,14 +101,10 @@ function createMarker(place) {
   return nextMarker;
 }
 
+// サンプルスポットを PHP サーバーから取得して地図に表示
 async function loadSampleSpots() {
   try {
     const response = await fetch(spotsApiUrl);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
     const spots = await response.json();
 
     if (!Array.isArray(spots)) {
@@ -169,6 +112,7 @@ async function loadSampleSpots() {
     }
 
     addSampleSpotMarkers(spots);
+    renderSpotList(spots);
   } catch (error) {
     console.error(error);
     setMessage('サンプルスポットの取得に失敗しました。PHP サーバー経由で開いているか確認してください。', true);
@@ -176,8 +120,10 @@ async function loadSampleSpots() {
 }
 
 function addSampleSpotMarkers(spots) {
+  spotMarkers = [];
   spots.forEach((spot) => {
     if (!isValidSpot(spot)) {
+      spotMarkers.push(null);
       return;
     }
 
@@ -198,7 +144,40 @@ function addSampleSpotMarkers(spots) {
     spotMarker.addListener('click', () => {
       openInfoWindow(spot, spotMarker);
     });
+
+    spotMarkers.push(spotMarker);
   });
+}
+
+function renderSpotList(spots) {
+  const container = document.getElementById('spot-list');
+  if (!container) return;
+
+  container.innerHTML = spots.map((spot, i) => `
+    <button type="button" data-index="${i}"
+      class="spot-card flex w-full items-start gap-3 rounded-lg bg-white p-4 shadow text-left transition hover:bg-blue-50 hover:shadow-md active:scale-[0.98]">
+      <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">${i + 1}</span>
+      <div class="min-w-0 flex-1">
+        <p class="font-bold text-slate-800">${escapeHtml(spot.name)}</p>
+        <p class="mt-0.5 truncate text-xs text-slate-500">${escapeHtml(spot.address)}</p>
+      </div>
+      <span class="mt-1 shrink-0 text-sm text-blue-400">→</span>
+    </button>
+  `).join('');
+
+  container.querySelectorAll('.spot-card').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.index);
+      focusSpot(spots[i], i);
+    });
+  });
+}
+
+function focusSpot(spot, index) {
+  map.panTo(spot.position);
+  map.setZoom(16);
+  const target = spotMarkers[index];
+  if (target) openInfoWindow(spot, target);
 }
 
 function isValidSpot(spot) {
@@ -215,6 +194,8 @@ function openInfoWindow(place, targetMarker) {
   const escapedName = escapeHtml(place.name);
   const escapedAddress = escapeHtml(place.address);
 
+  showPlaceMessage(place);
+
   infoWindow.setContent(`
     <div style="min-width: 180px">
       <p style="margin: 0 0 4px; font-weight: 700;">${escapedName}</p>
@@ -224,8 +205,14 @@ function openInfoWindow(place, targetMarker) {
   infoWindow.open(map, targetMarker);
 }
 
+function showPlaceMessage(place) {
+  const message = `現在地: 緯度 ${place.position.lat.toFixed(5)}, 経度 ${place.position.lng.toFixed(5)}`;
+  setMessage(message);
+}
+
 function setMessage(text, isError = false) {
   const message = document.getElementById('message');
+  if (!message) return;
   message.textContent = text;
   message.className = `mt-3 min-h-5 text-sm ${isError ? 'text-red-600' : 'text-slate-600'}`;
 }
