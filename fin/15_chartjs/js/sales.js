@@ -1,135 +1,118 @@
-const messageContainer = document.getElementById('message-container');
-const salesContainer = document.getElementById('sales-chart');
-const softwaresContainer = document.getElementById('softwares-chart');
-
-// グローバル変数で管理
 let salesChart;
 let softwaresChart;
+let salesData     = {};
+let softwaresData = {};
 
-// 初期データ
-let salesData = {
-    labels: [],
-    datasets: [{
-        label: '',
-        data: [],
-        backgroundColor: [],
-        borderColor: [],
-        borderWidth: 1
-    }]
-};
-
-let softwaresData = {
-    labels: [],
-    datasets: [{
-        label: '',
-        data: [],
-        backgroundColor: [],
-        borderColor: [],
-        borderWidth: 1
-    }]
-};
-
-// 初期オプション
-let salesOptions = {
+const salesOptions = {
+    responsive: true,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            padding: 10,
+            callbacks: { label: (ctx) => `  ${ctx.parsed.y} 百万円` },
+        },
+    },
     scales: {
-        y: {
-            beginAtZero: true
-        }
-    }
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } },
+    },
 };
 
-let softwaresOptions = {
-    scales: {
-        y: {
-            beginAtZero: true
-        }
-    }
+const softwaresOptions = {
+    responsive: true,
+    plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16, boxWidth: 14 } },
+        tooltip: { padding: 10 },
+    },
 };
 
-
-// 売上のチャートを生成する関数
-function createSalesChart(type, data, options) {
-    const ctx = salesContainer.getContext('2d');
-    salesChart = new Chart(ctx, {
-        type: type,
-        data: data,
-        options: options
+// ─── ボタンのアクティブ状態を切り替え ───
+function setActive(activeBtn, ...rest) {
+    rest.forEach(btn => {
+        btn.classList.remove('bg-white', 'shadow-sm', 'text-slate-700');
+        btn.classList.add('text-slate-400');
     });
+    activeBtn.classList.add('bg-white', 'shadow-sm', 'text-slate-700');
+    activeBtn.classList.remove('text-slate-400');
 }
 
-// ソフトウェアのチャートを生成する関数
-function createSoftwaresChart(type, data, options) {
-    const ctx = softwaresContainer.getContext('2d');
-    softwaresChart = new Chart(ctx, {
-        type: type,
-        data: data,
-        options: options
-    });
-}
-
-// 売上データを取得する関数
-async function loadSalesData() {
-    const uri = 'api/sales.json';
-    const response = await fetch(uri);
-    return await response.json();
-}
-
-// ソフトウェアデータを取得する関数
-async function loadSoftwaresData() {
-    const uri = 'api/softwares.json';
-    const response = await fetch(uri);
-    return await response.json();
-}
-
-// 売上チャートを更新
-function updateSalesChart(type, data, options) {
+// ─── 売上チャート生成 ───
+function createSalesChart(type) {
     if (salesChart) salesChart.destroy();
-    createSalesChart(type, data, options);
+    const ctx = document.getElementById('sales-chart').getContext('2d');
+    const ds  = salesData.datasets[0];
+
+    ds.backgroundColor = type === 'bar'
+        ? 'rgba(59, 130, 246, 0.7)'
+        : 'rgba(59, 130, 246, 0.1)';
+    ds.borderColor  = 'rgba(59, 130, 246, 1)';
+    ds.borderWidth  = type === 'bar' ? 0 : 2.5;
+    ds.borderRadius = type === 'bar' ? 6 : 0;
+    ds.borderSkipped = false;
+    ds.tension      = 0.4;
+    ds.fill         = type === 'line';
+    ds.pointRadius  = type === 'line' ? 4 : 0;
+
+    salesChart = new Chart(ctx, { type, data: salesData, options: salesOptions });
 }
 
-// ソフトウェアチャートを更新
-function updateSoftwaresChart(type, data, options) {
-    // 既存のチャートが存在する場合は破棄
+// ─── ソフトウェアチャート生成 ───
+function createSoftwaresChart(type) {
     if (softwaresChart) softwaresChart.destroy();
-    // 新しいチャートを作成
-    createSoftwaresChart(type, softwaresData, softwaresOptions);
+    const ctx = document.getElementById('softwares-chart').getContext('2d');
+    softwaresChart = new Chart(ctx, { type, data: softwaresData, options: softwaresOptions });
 }
 
-// ドーナツグラフを描画する関数（ソフトウェアチャート用）
-function doughnutChart() {
-    // 既存のチャートが存在する場合は破棄
-    if (softwaresChart) softwaresChart.destroy();
-    // 新しいチャートを作成
-    createSoftwaresChart('doughnut', softwaresData, softwaresOptions);
+// ─── 統計レンダリング ───
+function renderStats(data) {
+    const values = data.datasets[0].data;
+    const labels = data.labels;
+    const total  = values.reduce((s, v) => s + v, 0).toFixed(1);
+    const maxIdx = values.indexOf(Math.max(...values));
+    const minIdx = values.indexOf(Math.min(...values));
+
+    document.getElementById('stat-total').textContent       = total;
+    document.getElementById('stat-best-month').textContent  = labels[maxIdx];
+    document.getElementById('stat-best-val').textContent    = `${values[maxIdx]} 百万円`;
+    document.getElementById('stat-worst-month').textContent = labels[minIdx];
+    document.getElementById('stat-worst-val').textContent   = `${values[minIdx]} 百万円`;
 }
 
-// イベントリスナーの設定
-document.getElementById('sales-bar-btn').addEventListener('click', () => {
-    updateSalesChart('bar', salesData, salesOptions);
+// ─── イベントリスナー ───
+const salesBarBtn  = document.getElementById('sales-bar-btn');
+const salesLineBtn = document.getElementById('sales-line-btn');
+const pieBtn       = document.getElementById('softwares-pie-btn');
+const doughnutBtn  = document.getElementById('softwares-doughnut-btn');
+
+salesBarBtn.addEventListener('click', () => {
+    createSalesChart('bar');
+    setActive(salesBarBtn, salesLineBtn);
+});
+salesLineBtn.addEventListener('click', () => {
+    createSalesChart('line');
+    setActive(salesLineBtn, salesBarBtn);
+});
+pieBtn.addEventListener('click', () => {
+    createSoftwaresChart('pie');
+    setActive(pieBtn, doughnutBtn);
+});
+doughnutBtn.addEventListener('click', () => {
+    createSoftwaresChart('doughnut');
+    setActive(doughnutBtn, pieBtn);
 });
 
-document.getElementById('sales-line-btn').addEventListener('click', () => {
-    updateSalesChart('line', salesData, salesOptions);
-});
-
-document.getElementById('softwares-pie-btn').addEventListener('click', () => {
-    updateSoftwaresChart('pie', softwaresData, softwaresOptions);
-});
-
-document.getElementById('softwares-doughnut-btn').addEventListener('click', () => {
-    updateSoftwaresChart('doughnut', softwaresData, softwaresOptions);
-});
-
-
-// グラフの初期化関数
-(async function initChart() {
-    // 売上データを取得
-    salesData = await loadSalesData();
-    // 売上データ取得後にグラフを描画
-    updateSalesChart('bar', salesData, salesOptions);
-
-    // ソフトウェアデータ取得
-    softwaresData = await loadSoftwaresData();
-    // ソフトウェアデータ取得後にグラフを描画
-    createSoftwaresChart('pie', softwaresData, softwaresOptions);
+// ─── 初期化 ───
+(async function init() {
+    try {
+        [salesData, softwaresData] = await Promise.all([
+            fetch('api/sales.json').then(r => r.json()),
+            fetch('api/softwares.json').then(r => r.json()),
+        ]);
+    } catch {
+        document.getElementById('message-container').textContent = 'データの取得に失敗しました';
+        return;
+    }
+    renderStats(salesData);
+    createSalesChart('bar');
+    createSoftwaresChart('pie');
 })();
