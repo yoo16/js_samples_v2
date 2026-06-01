@@ -102,11 +102,12 @@ function showDetail(productId) {
 // 初期カート情報の取得
 async function fetchInitialCart() {
     try {
-        const uri = "api/cart/get.php";
-        // TODO: GETリクエストで現在のカート情報を取得: fetchAPI
-        const response = {};
-        // TODO: JSON形式でレスポンスを取得: json()
-        const result = {};
+        // TODO: カート情報APIのURLを指定: api/cart/get.php
+        const uri = "";
+        // GETリクエストで現在のカート情報を取得: fetchAPI
+        const response = await fetch(uri);
+        // JSON形式でレスポンスを取得: json()
+        const result = await response.json();
         console.log('Initial Cart Fetch Result:', result);
 
         // カートの中身があれば反映
@@ -291,5 +292,6 @@ cartCloseBtn.addEventListener('click', () => cartModal.classList.add('hidden'));
 (async () => {
     // 商品データ
     await fetchProducts();
-    // TODO: カート照合: fetchInitialCart(非同期)
+    // カート照合
+    await fetchInitialCart();
 })();
