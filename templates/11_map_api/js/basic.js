@@ -8,11 +8,21 @@ let geocoder;
 let infoWindow;
 let spotMarkers = [];
 
-const defaultPlace = {
+// 東京駅の座標
+const tokyo = {
   name: '東京駅',
   position: { lat: 35.681236, lng: 139.767125 },
   address: '東京都千代田区丸の内1丁目',
 };
+// 新宿駅の座標
+const shinjuku = {
+  name: '新宿駅',
+  position: { lat: 35.689487, lng: 139.691706 },
+  address: '東京都新宿区西新宿1丁目',
+};
+
+// デフォルトのスポット情報
+const defaultPlace = tokyo;
 
 const spotsApiUrl = 'api/spots.php';
 
@@ -22,7 +32,7 @@ window.initMap = function initMap() {
   infoWindow = new google.maps.InfoWindow();
 
   map = new google.maps.Map(document.getElementById('map'), {
-    // TODO: 中心をデフォルトスポットの座標に設定: defaultPlace.position
+    // TODO: 中心をデフォルトスポットの座標に設定
     center: null,
     // TODO: ズームレベルを設定 (例: 14)
     zoom: 1,
@@ -31,8 +41,13 @@ window.initMap = function initMap() {
     fullscreenControl: true,
   });
 
-  marker = createMarker(defaultPlace);
+  // TODO: マーカーを作成
+  // marker = createMarker(defaultPlace);
+
+  // サンプルスポットを PHP サーバーから取得して地図に表示
   loadSampleSpots();
+
+  // イベントのバインド
   bindEvents();
 };
 
@@ -193,15 +208,12 @@ function isValidSpot(spot) {
 }
 
 function openInfoWindow(place, targetMarker) {
-  const escapedName = escapeHtml(place.name);
-  const escapedAddress = escapeHtml(place.address);
-
   showPlaceMessage(place);
 
   infoWindow.setContent(`
     <div style="min-width: 180px">
-      <p style="margin: 0 0 4px; font-weight: 700;">${escapedName}</p>
-      <p style="margin: 0; color: #475569;">${escapedAddress}</p>
+      <p style="margin: 0 0 4px; font-weight: 700;">${place.name}</p>
+      <p style="margin: 0; color: #475569;">${place.address}</p>
     </div>
   `);
   infoWindow.open(map, targetMarker);
