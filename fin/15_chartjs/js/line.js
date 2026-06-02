@@ -1,4 +1,4 @@
-const ctx    = document.getElementById('lineChart').getContext('2d');
+const ctx = document.getElementById('lineChart').getContext('2d');
 const labels = [4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11, 12];
 const data   = [2, 3, 5, 7, 8, 9, 8, 6, 5];
 

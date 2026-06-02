@@ -1,0 +1,170 @@
+{
+  "title": "Google Maps API チェックリスト",
+  "subtitle": "Maps JavaScript API / Geocoding API / 描画機能",
+  "intro": "Google Cloud Console で API キーを取得してから、basic.html（現在地・スポット一覧）と map.html（地図切替・描画機能）を完成させましょう。PHP 開発サーバー経由でアクセスする必要があります。",
+  "sections": [
+    {
+      "id": "api-key",
+      "title": "API キーの取得（デモキー作成）",
+      "description": "Google Cloud Console で Maps JavaScript API と Geocoding API を有効にして、API キーを発行します。",
+      "blocks": [
+        { "type": "subheading", "text": "Google Cloud Console でプロジェクトを用意する" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "key-1", "text": "https://mapsplatform.google.com/intl/ja_jp/maps-demo-key/ を開き、Google アカウントでログイン" },
+            { "id": "key-2", "text": "「無料トライアルを試す」でデモキーを作成する" },
+            { "id": "key-3", "text": "APIキーをコピーしておく" }
+          ]
+        },
+        { "type": "subheading", "text": "HTML ファイルに API キーをセットする" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "key-14", "text": "basic.html の script src 末尾の YOUR_API_Key を取得したキーに書き換える" },
+            { "id": "key-15", "text": "map.html の script src 末尾の YOUR_API_KEY も同様に書き換える" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "html",
+          "code": "<!-- 例: AIzaSy... の部分を自分のキーに差し替える -->\n<script src=\"https://maps.googleapis.com/maps/api/js?key=AIzaSy...&callback=initMap\"\n    async defer></script>"
+        }
+      ]
+    },
+    {
+      "id": "basic",
+      "title": "basic.html — 現在地・スポット一覧",
+      "description": "現在地ボタンと API から取得したスポット一覧を確認します。basic.js は実装済みなので、動作確認が中心です。",
+      "blocks": [
+        { "type": "subheading", "text": "スポット一覧の確認" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "basic-1", "text": "basic.html を開き、地図の下にスポットカードが3件表示されることを確認" },
+            { "id": "basic-2", "text": "スポットカードをクリックすると地図がそのスポットに移動（panTo）することを確認" },
+            { "id": "basic-3", "text": "地図上の青い丸マーカーをクリックすると InfoWindow が開くことを確認" }
+          ]
+        },
+        { "type": "subheading", "text": "現在地ボタンの確認" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "basic-4", "text": "「📍 現在地」ボタンをクリックし、ブラウザの位置情報許可ダイアログが表示されることを確認" },
+            { "id": "basic-5", "text": "許可すると地図が現在地に移動してメッセージに緯度・経度が表示されることを確認" }
+          ]
+        },
+        {
+          "type": "note",
+          "text": "js/basic.js の loadSampleSpots() が api/spots.php に fetch して JSON を受け取り、renderSpotList() でカードを生成しています。スポットカードのクリックは focusSpot() で map.panTo() と InfoWindow を呼び出しています。"
+        }
+      ]
+    },
+    {
+      "id": "map-init",
+      "title": "map.js — initMap の TODO を埋める",
+      "description": "地図の初期化・ジオコーダー・初期マーカーを完成させます。",
+      "blocks": [
+        { "type": "subheading", "text": "ジオコーダーの初期化" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "init-1", "text": "js/map.js の initMap() を開き、geocoder の行がコメントアウトされていることを確認" },
+            { "id": "init-2", "text": "コメントを外して geocoder = new google.maps.Geocoder(); を有効にする" }
+          ]
+        },
+        { "type": "subheading", "text": "地図の初期ズームを修正する" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "init-3", "text": "new google.maps.Map() の zoom が 1 になっていることを確認" },
+            { "id": "init-4", "text": "zoom を 14 に変更して東京駅周辺が適切なスケールで表示されるようにする" }
+          ]
+        },
+        { "type": "subheading", "text": "初期マーカーの設定" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "init-5", "text": "selectedMarker の new google.maps.Marker() がコメントアウトされていることを確認" },
+            { "id": "init-6", "text": "コメントを外して東京駅にマーカーが立つようにする" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "js",
+          "code": "geocoder = new google.maps.Geocoder();\n\nmap = new google.maps.Map(document.getElementById('map'), {\n    center: tokyo,\n    zoom: 14,          // 1 → 14 に修正\n    mapTypeId: 'roadmap',\n});\n\nselectedMarker = new google.maps.Marker({\n    position: tokyo,\n    map,\n    title: '東京駅',\n});"
+        }
+      ]
+    },
+    {
+      "id": "map-events",
+      "title": "map.js — イベントと描画モードの TODO を埋める",
+      "description": "地図タイプ切替ボタンと、クリック時の描画モード判定を完成させます。",
+      "blocks": [
+        { "type": "subheading", "text": "地図タイプ切替ボタンを有効にする" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "ev-1", "text": "bindEvents() の .map-type ボタンのリスナー内で setMapType の行がコメントアウトされていることを確認" },
+            { "id": "ev-2", "text": "コメントを外して setMapType(button.dataset.type); を呼び出すようにする" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "js",
+          "code": "document.querySelectorAll('.map-type').forEach((button) => {\n    button.addEventListener('click', () => {\n        setMapType(button.dataset.type); // コメントを外す\n        setActiveButton('.map-type', button, 'bg-zinc-900');\n    });\n});"
+        },
+        { "type": "subheading", "text": "handleMapClick の描画モード判定を埋める" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "ev-3", "text": "handleMapClick() を開き、if (activeMode === '') が3か所あることを確認" },
+            { "id": "ev-4", "text": "1つ目（マーカーモード）の '' を 'marker' に変更する" },
+            { "id": "ev-5", "text": "2つ目（線描画モード）の '' を 'line' に変更する" },
+            { "id": "ev-6", "text": "3つ目（範囲描画モード）の '' を 'polygon' に変更する" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "js",
+          "code": "function handleMapClick(latLng) {\n    if (activeMode === 'marker') {\n        // マーカーを移動\n    }\n    if (activeMode === 'line') {\n        addLinePoint(latLng);\n        return;\n    }\n    if (activeMode === 'polygon') {\n        addPolygonPoint(latLng);\n        return;\n    }\n    if (activeMode === 'circle') {\n        drawCircle(latLng);\n    }\n}"
+        },
+        {
+          "type": "note",
+          "text": "activeMode は描画モード切替ボタン（.draw-mode）をクリックすると更新されます。handleMapClick は地図クリックのたびに呼ばれ、activeMode の値によって処理を分岐します。"
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "title": "動作確認",
+      "description": "両ページをブラウザで開いて、すべての機能が正しく動くことを確認します。",
+      "blocks": [
+        { "type": "subheading", "text": "basic.html の確認" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "v-1", "text": "ページを開くと東京駅周辺が適切なズームで表示されることを確認" },
+            { "id": "v-2", "text": "スポットカードが3件（東京タワー・浅草寺・新宿御苑）表示されることを確認" },
+            { "id": "v-3", "text": "カードをクリックすると地図がそのスポットに panTo し InfoWindow が開くことを確認" },
+            { "id": "v-4", "text": "現在地ボタンで位置情報を取得し、地図と緯度経度メッセージが更新されることを確認" }
+          ]
+        },
+        { "type": "subheading", "text": "map.html の確認" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "v-5", "text": "ページを開くと東京駅にマーカーが立ちズーム14で表示されることを確認" },
+            { "id": "v-6", "text": "「衛星写真」「地形図」「3D風」ボタンで地図タイプが切り替わることを確認" },
+            { "id": "v-7", "text": "スタイル選択で「淡色スタイル」「夜間スタイル」に変わることを確認" },
+            { "id": "v-8", "text": "「線を描く」モードで地図をクリックすると点が追加され青い線が引かれることを確認" },
+            { "id": "v-9", "text": "「範囲を描く」モードで3点以上クリックし「範囲を閉じる」で緑の多角形になることを確認" },
+            { "id": "v-10", "text": "「円を描く」モードで地図をクリックすると半径600mの赤い円が表示されることを確認" },
+            { "id": "v-11", "text": "「描画を消去」で線・範囲・円・クリックマーカーがすべて消えることを確認" },
+            { "id": "v-12", "text": "「マーカー」モードで地図をクリックするとサイドパネルに緯度・経度が表示されることを確認" }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 const ctx    = document.getElementById('barChart').getContext('2d');
+// X軸のラベル
 const labels = ['Red', 'Blue', 'Yellow'];
+// Y軸の値
 const values = [12, 19, 3];
+// グラフの色
 const colors = [
     'rgba(239, 68,  68,  0.85)',
     'rgba(59,  130, 246, 0.85)',

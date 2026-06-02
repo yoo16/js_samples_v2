@@ -1,0 +1,232 @@
+{
+  "title": "Chart.js 穴埋めチェックリスト",
+  "subtitle": "Chart.js / DOM 操作 / fetch API",
+  "intro": "各 JS ファイルの TODO コメントを埋めてグラフを完成させましょう。bar.js（棒グラフ）→ line.js（折れ線グラフ）→ ramen.js（ランキング）→ sales.js（売上分析）→ player.js（キャラクター紹介）の順に取り組むと、難易度が上がっていきます。",
+  "sections": [
+    {
+      "id": "bar",
+      "title": "bar.js — 棒グラフ",
+      "description": "投票結果を棒グラフで表示します。Chart.js の new Chart() にグラフの種類とデータを渡す基本パターンを覚えましょう。",
+      "blocks": [
+        { "type": "subheading", "text": "グラフの種類とデータを設定する" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "bar-1", "text": "js/bar.js を開き、new Chart() の type が空文字 '' になっていることを確認" },
+            { "id": "bar-2", "text": "type に棒グラフを表す文字列 'bar' を設定する" },
+            { "id": "bar-3", "text": "datasets[0].data が null になっていることを確認し、票数の配列 values をセットする" },
+            { "id": "bar-4", "text": "datasets[0].backgroundColor が空配列 [] になっていることを確認し、色の配列 colors をセットする" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "js",
+          "code": "new Chart(ctx, {\n    type: 'bar',\n    data: {\n        labels,\n        datasets: [{\n            label: 'Votes',\n            data: values,\n            backgroundColor: colors,\n            borderRadius: 8,\n        }],\n    },\n});"
+        },
+        {
+          "type": "note",
+          "text": "Chart.js では type でグラフの種類を指定し、data.datasets[].data に描画する数値の配列を渡します。backgroundColor には各バーの色を配列で渡すと、インデックス順に色が割り当てられます。"
+        }
+      ]
+    },
+    {
+      "id": "line",
+      "title": "line.js — 折れ線グラフ",
+      "description": "睡眠時間と生産性の相関を折れ線グラフで表示します。グラフの見た目に関するオプションと、DOM への値反映も完成させましょう。",
+      "blocks": [
+        { "type": "subheading", "text": "グラフの種類とデータを設定する" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "line-1", "text": "js/line.js を開き、type が空文字 '' になっていることを確認し、'line' を設定する" },
+            { "id": "line-2", "text": "datasets[0].data が null になっていることを確認し、生産性スコアの配列 data をセットする" },
+            { "id": "line-3", "text": "tension が 0 になっているので 0.4 に変えて線を滑らかにする" },
+            { "id": "line-4", "text": "fill が false になっているので true に変えてグラフ下を塗りつぶす" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "js",
+          "code": "datasets: [{\n    label: '1週間のデータ',\n    data: data,\n    tension: 0.4,\n    fill: true,\n}]"
+        },
+        { "type": "subheading", "text": "統計情報を画面に表示する" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "line-5", "text": "renderStats() の中で、最適睡眠時間 bestSleep を #stat-best-sleep の textContent に表示する" },
+            { "id": "line-6", "text": "最高生産性スコア maxScore を #stat-max-score の textContent に表示する" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "js",
+          "code": "document.getElementById('stat-best-sleep').textContent = bestSleep;\ndocument.getElementById('stat-max-score').textContent  = maxScore;"
+        },
+        {
+          "type": "note",
+          "text": "tension: 0 だと折れ線、0.4 にするとベジェ曲線で滑らかになります。fill: true にすると x 軸との間が backgroundColor で塗りつぶされます。"
+        }
+      ]
+    },
+    {
+      "id": "ramen",
+      "title": "ramen.js — ラーメン人気ランキング",
+      "description": "男女別の棒グラフ・割合の積み上げ横棒グラフ・ランキングリストを表示するダッシュボードです。集計ロジックの穴埋めを完成させましょう。",
+      "blocks": [
+        { "type": "subheading", "text": "ランキングの並び替えと最大値取得" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "ramen-1", "text": "js/ramen.js の renderTotal() を開き、totalList.sort() がコメントアウトされていることを確認" },
+            { "id": "ramen-2", "text": "totalList を票数の多い順（降順）に並べ替えるコードを追加する（a.total と b.total を比較）" },
+            { "id": "ramen-3", "text": "maxTotal が 0 になっているので、ソート後の先頭要素 totalList[0].total に書き換える" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "js",
+          "code": "totalList.sort((a, b) => b.total - a.total);\nconst maxTotal = totalList[0].total;"
+        },
+        {
+          "type": "note",
+          "text": "sort((a, b) => b.total - a.total) は「b が a より大きければ正の数を返す」ため降順になります。maxTotal はプログレスバーの幅を計算するために使います。"
+        }
+      ]
+    },
+    {
+      "id": "sales",
+      "title": "sales.js — 売上・ソフトウェア分析",
+      "description": "棒グラフ・折れ線グラフ・円グラフ・ドーナツグラフをボタンで切り替えるダッシュボードです。チャートの生成と非同期データ取得を完成させましょう。",
+      "blocks": [
+        { "type": "subheading", "text": "チャート生成のコードを書く" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "sales-1", "text": "js/sales.js の createSalesChart() を開き、new Chart() の行がコメントアウトされていることを確認" },
+            { "id": "sales-2", "text": "コメントを外して salesChart = new Chart(ctx, { type, data: salesData, options: salesOptions }); を有効にする" },
+            { "id": "sales-3", "text": "createSoftwaresChart() でも同様に softwaresChart = new Chart(ctx, { type, data: softwaresData, options: softwaresOptions }); を有効にする" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "js",
+          "code": "// createSalesChart 内\nsalesChart = new Chart(ctx, { type, data: salesData, options: salesOptions });\n\n// createSoftwaresChart 内\nsoftwaresChart = new Chart(ctx, { type, data: softwaresData, options: softwaresOptions });"
+        },
+        { "type": "subheading", "text": "非同期データ取得を完成させる" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "sales-4", "text": "init() 内の Promise.all 部分がコメントアウトされていることを確認" },
+            { "id": "sales-5", "text": "コメントを外して Promise.all で salesData と softwaresData を同時に取得する" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "js",
+          "code": "[salesData, softwaresData] = await Promise.all([\n    fetch('api/sales.json').then(r => r.json()),\n    fetch('api/softwares.json').then(r => r.json()),\n]);"
+        },
+        {
+          "type": "note",
+          "text": "Promise.all は複数の非同期処理を同時に実行し、すべて完了するまで待ちます。順番に await するより高速です。"
+        }
+      ]
+    },
+    {
+      "id": "player",
+      "title": "player.js — キャラクター紹介",
+      "description": "API からキャラクターデータを取得し、サムネイル・レーダーチャート・ノイズエフェクトつきの画像切り替えを行うページです。",
+      "blocks": [
+        { "type": "subheading", "text": "API URL の設定" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "player-1", "text": "js/player.js の init() を開き、const uri = '' が空になっていることを確認" },
+            { "id": "player-2", "text": "uri に 'api/players.json' を設定する" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "js",
+          "code": "const uri = 'api/players.json';"
+        },
+        { "type": "subheading", "text": "サムネイルのクリックイベントを設定する" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "player-3", "text": "createThumbnail() の addEventListener の第1引数が空文字になっていることを確認" },
+            { "id": "player-4", "text": "クリックイベントなので 'click' を設定する" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "js",
+          "code": "thumb.addEventListener('click', () => loadPlayer(player.id));"
+        },
+        { "type": "subheading", "text": "プレイヤー表示の更新処理を完成させる" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "player-5", "text": "loadPlayer() の中で画像切り替え transitionImage(playerData.image) がコメントアウトされていることを確認" },
+            { "id": "player-6", "text": "コメントを外して transitionImage(playerData.image) を呼び出す" },
+            { "id": "player-7", "text": "createChart() の中で playerChart = new Chart(ctx, chartConfig) がコメントアウトされていることを確認" },
+            { "id": "player-8", "text": "コメントを外してチャートを生成する" }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "js",
+          "code": "// loadPlayer 内\ntransitionImage(playerData.image);\n\n// createChart 内\nplayerChart = new Chart(ctx, chartConfig);"
+        },
+        {
+          "type": "note",
+          "text": "transitionImage() はノイズエフェクトつきで画像を切り替える関数です。コメントを外すだけで動作します。チャートの生成も同様に、設定オブジェクト chartConfig はすでに組み立てられているので new Chart() に渡すだけです。"
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "title": "動作確認",
+      "description": "各ページをブラウザで開いて、グラフが正しく表示されることを確認します。",
+      "blocks": [
+        { "type": "subheading", "text": "bar.html / line.html の確認" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "v-1", "text": "bar.html を開き、Red・Blue・Yellow の棒グラフが表示されることを確認" },
+            { "id": "v-2", "text": "合計票数・最多・最少の統計カードに数値が表示されることを確認" },
+            { "id": "v-3", "text": "line.html を開き、睡眠時間と生産性の折れ線グラフが滑らかな曲線で表示されることを確認" },
+            { "id": "v-4", "text": "グラフ下が塗りつぶされていることを確認（fill: true）" },
+            { "id": "v-5", "text": "最適睡眠時間・最高生産性スコアの統計カードに値が表示されることを確認" }
+          ]
+        },
+        { "type": "subheading", "text": "ramen.html の確認" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "v-6", "text": "ramen.html を PHP サーバ経由で開き、ランキングが票数の多い順に並ぶことを確認" },
+            { "id": "v-7", "text": "プログレスバーが 1 位を 100% として相対的な長さで表示されることを確認" },
+            { "id": "v-8", "text": "男女別棒グラフと積み上げ横棒グラフがどちらも表示されることを確認" }
+          ]
+        },
+        { "type": "subheading", "text": "sales.html の確認" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "v-9", "text": "sales.html を PHP サーバ経由で開き、月次売上棒グラフが表示されることを確認" },
+            { "id": "v-10", "text": "「折れ線」ボタンを押して折れ線グラフに切り替わることを確認" },
+            { "id": "v-11", "text": "ソフトウェア円グラフが表示され、「ドーナツ」ボタンで切り替わることを確認" }
+          ]
+        },
+        { "type": "subheading", "text": "player.html の確認" },
+        {
+          "type": "items",
+          "items": [
+            { "id": "v-12", "text": "player.html を PHP サーバ経由で開き、サムネイルが横一列に表示されることを確認" },
+            { "id": "v-13", "text": "サムネイルをクリックするとノイズエフェクトつきで画像が切り替わることを確認" },
+            { "id": "v-14", "text": "切り替え後にレーダーチャートがそのキャラクターのデータで更新されることを確認" }
+          ]
+        }
+      ]
+    }
+  ]
+}
