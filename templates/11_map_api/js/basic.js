@@ -22,8 +22,10 @@ window.initMap = function initMap() {
   infoWindow = new google.maps.InfoWindow();
 
   map = new google.maps.Map(document.getElementById('map'), {
-    center: defaultPlace.position,
-    zoom: 14,
+    // TODO: 中心をデフォルトスポットの座標に設定: defaultPlace.position
+    center: null,
+    // TODO: ズームレベルを設定 (例: 14)
+    zoom: 1,
     mapTypeControl: false,
     streetViewControl: false,
     fullscreenControl: true,
