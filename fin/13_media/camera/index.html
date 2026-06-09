@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AQUA PHOTO</title>
+    <!-- Tailwind CSS の CDN 読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.92) 0 5rem, transparent 16rem),
+                radial-gradient(circle at 86% 18%, rgba(125, 225, 255, 0.72) 0 4rem, transparent 19rem),
+                radial-gradient(circle at 50% 92%, rgba(166, 243, 255, 0.58) 0 6rem, transparent 24rem),
+                linear-gradient(135deg, #e7fbff 0%, #b7effb 42%, #f6fdff 100%);
+            overflow-x: hidden;
+            position: relative;
+            isolation: isolate;
+        }
+
+        body::before,
+        body::after {
+            position: fixed;
+            z-index: -1;
+            color: rgba(255, 255, 255, 0.68);
+            font-weight: 900;
+            pointer-events: none;
+            letter-spacing: 0.05em;
+            text-shadow: 0 18px 60px rgba(14, 165, 233, 0.22);
+        }
+
+        .puri-shell {
+            border: 1px solid rgba(14, 116, 144, 0.18);
+            border-radius: 34px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(232, 250, 255, 0.84)),
+                #f8fdff;
+            box-shadow: 0 36px 100px rgba(8, 145, 178, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.86);
+        }
+
+        .puri-badge {
+            background: linear-gradient(135deg, #38bdf8, #67e8f9 56%, #ffffff);
+            color: #075985;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.74), 0 10px 26px rgba(14, 165, 233, 0.18);
+        }
+
+        .sparkle-line {
+            height: 14px;
+            background:
+                radial-gradient(circle, rgba(255, 255, 255, 0.96) 0 3px, transparent 3.5px),
+                linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.44), transparent);
+            background-size: 30px 14px, auto;
+        }
+
+        .mono-title {
+            font-family: Arial Black, Arial, sans-serif;
+            line-height: 0.88;
+        }
+
+        .feature-tile {
+            border: 1px solid rgba(14, 165, 233, 0.24);
+            background: rgba(255, 255, 255, 0.66);
+            box-shadow: 0 12px 30px rgba(8, 145, 178, 0.1);
+        }
+
+        #canvas-area canvas {
+            display: block;
+            width: min(100%, 430px);
+            height: auto;
+            aspect-ratio: 37 / 56;
+        }
+
+        .frame-thumbnail {
+            transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+        }
+
+        .frame-thumbnail:hover {
+            transform: translateY(-2px);
+        }
+
+        .frame-thumbnail.border-blue-500 {
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 4px rgba(186, 230, 253, 0.78), 0 14px 30px rgba(14, 165, 233, 0.22);
+        }
+
+        .aqua-glass {
+            border: 1px solid rgba(14, 165, 233, 0.24);
+            background: rgba(255, 255, 255, 0.64);
+            box-shadow: 0 16px 44px rgba(8, 145, 178, 0.12);
+            backdrop-filter: blur(16px);
+        }
+    </style>
+</head>
+
+<body class="text-sky-950 antialiased">
+    <!-- ローディングモーダル -->
+    <div id="loadingModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-sky-950/40 p-4 backdrop-blur-sm flex">
+        <div class="rounded-3xl border border-sky-200 bg-white/90 px-8 py-6 shadow-2xl shadow-sky-200/50">
+            <p class="text-sm font-black tracking-[0.24em] text-sky-600">PRINTING...</p>
+        </div>
+    </div>
+
+    <!-- 画像表示モーダル（キャプチャ後の画像を表示） -->
+    <div id="imageModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-sky-950/60 p-4 backdrop-blur-sm flex">
+        <div class="flex w-full max-w-3xl flex-col items-center rounded-[32px] border border-sky-200 bg-white/90 p-4 shadow-2xl shadow-sky-300/40 sm:p-5">
+            <img id="capturedImage" src="" alt="Captured Image"
+                class="max-h-[72vh] w-full rounded-3xl object-contain ring-1 ring-sky-100">
+            <div class="mt-5 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                <button id="downloadImage"
+                    class="rounded-full bg-sky-500 px-6 py-3 text-sm font-black tracking-[0.12em] text-white shadow-lg shadow-sky-300/50 transition hover:bg-sky-600">
+                    Download
+                </button>
+                <button id="closeImageModal"
+                    class="rounded-full border border-sky-200 bg-white px-6 py-3 text-sm font-black tracking-[0.12em] text-sky-700 transition hover:bg-sky-50">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- カウントダウン用オーバーレイ -->
+    <div id="countdownOverlay" class="fixed inset-0 z-40 hidden items-center justify-center bg-sky-950/20 backdrop-blur-[2px] flex">
+        <div id="countdownCircle"
+            class="flex h-40 w-40 items-center justify-center rounded-full border-[10px] border-white bg-sky-400 text-8xl font-black text-white shadow-2xl shadow-sky-300/60">
+        </div>
+    </div>
+
+    <main class="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-5 sm:px-6 lg:px-8">
+        <section class="puri-shell flex flex-1 flex-col p-4 sm:p-6">
+            <header class="grid gap-5 pb-5 lg:grid-cols-[1fr_auto] lg:items-end">
+                <div>
+                    <p class="w-fit rounded-full border border-sky-200 bg-white/70 px-4 py-1 text-xs font-black uppercase tracking-[0.24em] text-sky-700 shadow-sm shadow-sky-100">
+                        Fresh Photo Machine
+                    </p>
+                    <h1 class="mono-title mt-4 text-6xl font-black tracking-normal text-sky-500 drop-shadow-sm sm:text-8xl">AQUA PHOTO</h1>
+                    <p class="mt-3 max-w-xl text-sm font-bold leading-7 text-sky-800 sm:text-base">
+                        光をたっぷり含んだ、透明感のあるセルフ撮影プリント。
+                    </p>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center text-[10px] font-black uppercase tracking-[0.16em] text-sky-700 sm:text-xs">
+                    <div class="feature-tile rounded-3xl px-3 py-3">Light<br>Boost</div>
+                    <div class="feature-tile rounded-3xl px-3 py-3">Aqua<br>Frame</div>
+                    <div class="feature-tile rounded-3xl px-3 py-3">Fresh<br>Skin</div>
+                </div>
+            </header>
+
+            <div class="sparkle-line mb-5"></div>
+
+            <div class="grid flex-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+                <section id="video-area" class="flex flex-col items-center gap-5">
+                    <input type="file" id="photo" class="hidden" />
+
+                    <!-- ビデオタグ -->
+                    <video id="video" width="640" height="480" autoplay class="hidden rounded-lg"></video>
+
+                    <!-- 合成用 Canvas 表示エリア -->
+                    <div id="canvas-area" class="flex w-full justify-center"></div>
+
+                </section>
+
+                <aside class="aqua-glass rounded-[32px] p-4">
+                    <div class="puri-badge mb-4 rounded-full px-4 py-2 text-center text-sm font-black tracking-[0.18em]">
+                        FRAME SELECT
+                    </div>
+                    <!-- フレーム選択：サムネイルで -->
+                    <div id="frameThumbnails"
+                        class="grid grid-cols-4 gap-3 overflow-x-auto lg:grid-cols-2">
+                        <img src="images/frame1.png" data-frame="images/frame1.png" alt="Frame 1"
+                            class="frame-thumbnail shrink-0 cursor-pointer rounded-3xl border-4 border-blue-500 object-cover">
+                        <img src="images/frame2.png" data-frame="images/frame2.png" alt="Frame 2"
+                            class="frame-thumbnail shrink-0 cursor-pointer rounded-3xl border-4 border-transparent object-cover hover:border-blue-500">
+                        <img src="images/frame3.png" data-frame="images/frame3.png" alt="Frame 3"
+                            class="frame-thumbnail shrink-0 cursor-pointer rounded-3xl border-4 border-transparent object-cover hover:border-blue-500">
+                        <img src="images/frame4.png" data-frame="images/frame4.png" alt="Frame 4"
+                            class="frame-thumbnail shrink-0 cursor-pointer rounded-3xl border-4 border-transparent object-cover hover:border-blue-500">
+                    </div>
+
+                    <div class="mt-5 space-y-3">
+                        <div>
+                            <label for="filterSelect" class="mb-2 block text-xs font-black tracking-[0.16em] text-sky-700">
+                                IMAGE FILTER
+                            </label>
+                            <select id="filterSelect"
+                                class="w-full rounded-full border border-sky-200 bg-white/80 px-4 py-3 text-xs font-black tracking-[0.12em] text-sky-700 shadow-sm outline-none transition hover:bg-sky-50 focus:border-sky-400">
+                                <option value="natural">Natural</option>
+                                <option value="clear">Clear Light</option>
+                                <option value="fresh">Fresh Skin</option>
+                                <option value="mono">Aqua Mono</option>
+                                <option value="soft">Soft Glow</option>
+                            </select>
+                        </div>
+                        <button id="toggleAudioBtn" type="button"
+                            class="w-full rounded-full border border-sky-200 bg-white/80 px-4 py-3 text-xs font-black tracking-[0.16em] text-sky-700 shadow-sm transition hover:bg-sky-50">
+                            Audio ON
+                        </button>
+                    </div>
+
+                    <div class="mt-6 flex w-full justify-center">
+                        <button id="capture-btn" type="button"
+                            class="rounded-full border-4 border-white bg-sky-500 px-10 py-4 text-lg font-black tracking-[0.12em] text-white shadow-xl shadow-sky-300/60 transition hover:-translate-y-0.5 hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-sky-300 disabled:shadow-none">
+                            撮影する
+                        </button>
+                    </div>
+                </aside>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/app.js" defer></script>
+</body>
+
+</html>
