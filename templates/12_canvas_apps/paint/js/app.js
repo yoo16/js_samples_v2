@@ -22,6 +22,7 @@ let currentColor = colorPicker.value;
 let currentLineWidth = Number(lineWidthRange.value);
 let isEraser = false;
 
+// ウィンドウサイズに合わせてキャンバスサイズを設定
 function getCanvasPoint(event) {
     const rect = canvas.getBoundingClientRect();
     return {
@@ -30,7 +31,7 @@ function getCanvasPoint(event) {
     };
 }
 
-// 描画用のキャンバスサイズをウィンドウサイズに合わせる
+// 方眼紙の背景を描画
 function drawPaperBackground() {
     ctx.save();
     ctx.globalCompositeOperation = 'source-over';
@@ -57,6 +58,7 @@ function drawPaperBackground() {
     ctx.restore();
 }
 
+// 消しゴムボタンの状態を更新する関数
 function updateEraserButton() {
     eraserButton.textContent = isEraser ? '消しゴム ON' : '消しゴム OFF';
     eraserButton.classList.toggle('bg-sky-500', isEraser);
@@ -72,8 +74,10 @@ function updateEraserButton() {
  * @param {number} y - 描画の開始 y 座標
  */
 function startDrawing(x, y) {
+    // 描画フラグを true に設定
     isDrawing = true;
-    [lastX, lastY] = [x, y];
+    // TODO: 最後の位置を更新
+    // [lastX, lastY] = [x, y];
 }
 
 /**
@@ -95,11 +99,13 @@ function draw(x, y) {
     // 線の太さ
     ctx.lineWidth = currentLineWidth;
 
-    // 前回の位置から現在の位置まで線を描画
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(x, y);
-    ctx.stroke();
+    // TODO: 前回の位置から現在の位置まで線を描画
+    // ctx.beginPath();
+    // ctx.moveTo(lastX, lastY);
+    // ctx.lineTo(x, y);
+    // ctx.stroke();
+
+    // 最後の位置を更新
     [lastX, lastY] = [x, y];
 }
 
@@ -109,12 +115,13 @@ function draw(x, y) {
  */
 function endDrawing() {
     ctx.globalCompositeOperation = 'source-over';
+    // 描画フラグを false に設定
     isDrawing = false;
 }
 
 // イベント
-// マウスダウン
-canvas.addEventListener('mousedown', (e) => {
+// TODO: マウスダウンイベント: mousedown
+canvas.addEventListener('', (e) => {
     const point = getCanvasPoint(e);
     startDrawing(point.x, point.y);
 });
@@ -127,7 +134,7 @@ canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
 });
 
-// マウス移動
+// マウス移動イベント
 canvas.addEventListener('mousemove', (e) => {
     const point = getCanvasPoint(e);
     draw(point.x, point.y);
@@ -152,8 +159,10 @@ canvas.addEventListener('touchcancel', endDrawing);
 
 // コントロール変更時のイベントリスナー
 colorPicker.addEventListener('change', (e) => {
-    currentColor = e.target.value;
+    // TODO: 現在の色を更新
+    // currentColor = e.target.value;
     colorValue.textContent = currentColor;
+    // 消しゴムモードの場合は、消しゴムをオフにする
     if (isEraser) {
         isEraser = false;
         updateEraserButton();
@@ -162,7 +171,8 @@ colorPicker.addEventListener('change', (e) => {
 
 // 太さ入力
 lineWidthRange.addEventListener('input', (e) => {
-    currentLineWidth = Number(e.target.value);
+    // TODO: 線の太さの表示を更新
+    // currentLineWidth = Number(e.target.value);
     lineWidthValue.textContent = currentLineWidth;
 });
 
@@ -177,18 +187,20 @@ downloadButton.addEventListener('click', () => {
     // Canvas の内容を PNG のデータURL に変換
     const dataURL = canvas.toDataURL('image/png');
 
-    // 一時的なリンク（aタグ）を生成してクリックし、ダウンロードを実行
-    const a = document.createElement('a');
-    a.href = dataURL;
-    a.download = 'canvas.png';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // TODO: 一時的なリンク（aタグ）を生成してクリックし、ダウンロードを実行
+    // const a = document.createElement('a');
+    // a.href = dataURL;
+    // a.download = 'canvas.png';
+    // document.body.appendChild(a);
+    // a.click();
+    // document.body.removeChild(a);
 });
 
 // 消しゴムボタン
 eraserButton.addEventListener('click', () => {
+    // 消しゴムモードをトグル
     isEraser = !isEraser;
+    // 消しゴムボタンの状態を更新
     updateEraserButton();
 });
 
