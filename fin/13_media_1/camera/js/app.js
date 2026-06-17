@@ -11,14 +11,14 @@ const imageModal = document.getElementById('imageModal');
 const capturedImage = document.getElementById('capturedImage');
 const closeImageModal = document.getElementById('closeImageModal');
 const downloadImageBtn = document.getElementById('downloadImage');
-const filterSelect = document.getElementById('filterSelect');
+const frameTextInput = document.getElementById('frameTextInput');
+const frameTextColor = document.getElementById('frameTextColor');
 const frameThumbnails = document.querySelectorAll('.frame-thumbnail');
+const filterButtons = document.querySelectorAll('.filter-button');
 
 // 合成用の Canvas を作成
-const compositeCanvas = document.createElement('canvas');
-const compositeCtx = compositeCanvas.getContext('2d');
-
-// ビデオ要素の初期設定
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d');
 
 // 現在選択中のフレーム画像（初期は最初のサムネイル）
 let currentFrameSrc = document.querySelector('.frame-thumbnail').dataset.frame;
@@ -40,14 +40,19 @@ const countdownAudio = new Audio('audio/countdown.wav');
 let audioEnabled = true;
 
 // 現在の画像フィルター
-let currentFilter = filterSelect.value;
+let currentFilter = document.querySelector('.filter-button').dataset.filter;
+
+// フレームに重ねる文字
+let frameText = frameTextInput.value;
+let frameTextColorValue = frameTextColor.value;
 
 const imageFilters = {
+    puri: 'brightness(1.22) contrast(0.92) saturate(1.18)',
+    skin: 'brightness(1.16) contrast(0.9) saturate(1.22) hue-rotate(-5deg)',
+    airy: 'brightness(1.2) contrast(0.84) saturate(1.02)',
+    pop: 'brightness(1.1) contrast(1.12) saturate(1.42)',
+    dreamy: 'brightness(1.18) contrast(0.82) saturate(1.1) blur(0.3px)',
     natural: 'none',
-    clear: 'brightness(1.12) contrast(1.08) saturate(1.16)',
-    fresh: 'brightness(1.1) contrast(0.96) saturate(1.24) hue-rotate(-4deg)',
-    mono: 'grayscale(1) contrast(1.08) brightness(1.08)',
-    soft: 'brightness(1.14) contrast(0.9) saturate(1.08) blur(0.25px)',
 };
 
 // TODO: 合成用フレーム画像オブジェクト
@@ -61,11 +66,11 @@ overlayFrame.src = currentFrameSrc;
  *   合成用の Canvas を作成し、DOM へ追加する。
  *   この Canvas には、合成された画像が描画される。
  */
-function createCompositeCanvas() {
-    compositeCanvas.width = canvasWidth;
-    compositeCanvas.height = canvasHeight;
+function createcanvas() {
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
     // 合成用のフレーム画像を設定
-    canvasArea.appendChild(compositeCanvas);
+    canvasArea.appendChild(canvas);
 }
 
 /**
@@ -101,6 +106,7 @@ function drawVideoCover() {
     let sourceWidth = videoWidth;
     let sourceHeight = videoHeight;
 
+    // video と canvas のアスペクト比を比較
     if (videoRatio > canvasRatio) {
         sourceWidth = videoHeight * canvasRatio;
         sourceX = (videoWidth - sourceWidth) / 2;
@@ -109,9 +115,12 @@ function drawVideoCover() {
         sourceY = (videoHeight - sourceHeight) / 2;
     }
 
-    compositeCtx.save();
-    compositeCtx.filter = imageFilters[currentFilter] || imageFilters.natural;
-    compositeCtx.drawImage(
+    // ctx の状態を保存
+    ctx.save();
+    // 選択されたフィルターを適用
+    ctx.filter = imageFilters[currentFilter] || imageFilters.natural;
+    // ビデオをキャンバス全体に cover 表示で描画
+    ctx.drawImage(
         video,
         sourceX,
         sourceY,
@@ -122,12 +131,46 @@ function drawVideoCover() {
         canvasWidth,
         canvasHeight
     );
-    compositeCtx.restore();
+    // ctx の状態を復元
+    ctx.restore();
+}
+
+/**
+ * 入力された文字をフレーム上へ重ねる。
+ */
+function drawFrameText() {
+    const text = frameText.trim();
+    if (!text) return;
+
+    const maxTextWidth = canvasWidth - 140;
+    let fontSize = 54;
+    // ctx の状態を保存
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `900 ${fontSize}px Arial, sans-serif`;
+
+    // テキストの幅が最大幅を超える場合、フォントサイズを小さくして調整
+    while (fontSize > 26 && ctx.measureText(text).width > maxTextWidth) {
+        fontSize -= 2;
+        ctx.font = `900 ${fontSize}px Arial, sans-serif`;
+    }
+
+    // テキストをフレーム上に描画
+    const x = canvasWidth / 2;
+    const y = canvasHeight - 96;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(8, fontSize * 0.18);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.fillStyle = frameTextColorValue;
+    ctx.strokeText(text, x, y);
+    ctx.fillText(text, x, y);
+    ctx.restore();
 }
 
 /**
  * 画像キャプチャ処理
- * compositeCanvas の内容（ビデオとフレームの合成済み）をキャプチャして Blob 化
+ * canvas の内容（ビデオとフレームの合成済み）をキャプチャして Blob 化
  */
 const onCapture = async () => {
     // 画像ファイル名
@@ -137,7 +180,7 @@ const onCapture = async () => {
     // モーダルを表示
     loadingModal.classList.remove('hidden');
     // canvas の内容を Blob に変換
-    compositeCanvas.toBlob((blob) => {
+    canvas.toBlob((blob) => {
         // 画像ファイルを DataTransfer に追加
         const file = new File([blob], imageFileName, { type: imageType });
         // データ転送オブジェクトにファイルを追加
@@ -199,8 +242,9 @@ captureBtn.addEventListener('click', () => {
 // サムネイルクリック時のイベントを設定
 frameThumbnails.forEach(thumb => {
     thumb.addEventListener('click', () => {
-        // TODO: クリックされたサムネイルからフレーム画像のパスを取得
+        // TODO: 現在のフレーム画像を更新
         currentFrameSrc = thumb.dataset.frame;
+        // TODO: 合成用のフレーム画像を更新
         overlayFrame.src = currentFrameSrc;
 
         // 選択中のサムネイルにスタイルを適用
@@ -210,8 +254,26 @@ frameThumbnails.forEach(thumb => {
 });
 
 // 画像フィルター変更
-filterSelect.addEventListener('change', (e) => {
-    currentFilter = e.target.value;
+filterButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        currentFilter = button.dataset.filter;
+        filterButtons.forEach(b => {
+            b.classList.remove('border-sky-500', 'bg-sky-500', 'text-white', 'hover:bg-sky-600');
+            b.classList.add('border-sky-200', 'bg-white/80', 'text-sky-700', 'hover:bg-sky-50');
+        });
+        button.classList.remove('border-sky-200', 'bg-white/80', 'text-sky-700', 'hover:bg-sky-50');
+        button.classList.add('border-sky-500', 'bg-sky-500', 'text-white', 'hover:bg-sky-600');
+    });
+});
+
+// フレーム文字変更
+frameTextInput.addEventListener('input', (e) => {
+    frameText = e.target.value;
+});
+
+// フレーム文字色変更
+frameTextColor.addEventListener('input', (e) => {
+    frameTextColorValue = e.target.value;
 });
 
 // ビデオが再生開始されたら、Canvas に合成描画を開始
@@ -222,9 +284,10 @@ video.addEventListener('play', () => {
         drawVideoCover();
         // フレーム画像が読み込まれている場合、合成
         if (overlayFrame.complete) {
-            compositeCtx.filter = 'none';
-            compositeCtx.drawImage(overlayFrame, 0, 0, canvasWidth, canvasHeight);
+            ctx.filter = 'none';
+            ctx.drawImage(overlayFrame, 0, 0, canvasWidth, canvasHeight);
         }
+        drawFrameText();
         requestAnimationFrame(drawComposite);
     };
     drawComposite();
@@ -255,4 +318,4 @@ toggleAudioBtn.addEventListener('click', () => {
 // カメラ有効化
 onCamera();
 // 合成用の Canvas を作成
-createCompositeCanvas();
+createcanvas();
