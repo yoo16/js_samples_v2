@@ -1,17 +1,17 @@
 const tracks = [
     {
         title: 'Music 1',
-        artist: 'Audio Track',
+        artist: 'Artist 1',
         src: 'audio/music1.mp3',
     },
     {
         title: 'Music 2',
-        artist: 'Audio Track',
+        artist: 'Artist 2',
         src: 'audio/music2.mp3',
     },
     {
         title: 'Music 3',
-        artist: 'Audio Track',
+        artist: 'Artist 3',
         src: 'audio/music3.mp3',
     },
 ];
@@ -33,11 +33,21 @@ const volumeBar = document.getElementById('volumeBar');
 const speedSelect = document.getElementById('speedSelect');
 const visualizer = document.getElementById('visualizer');
 const visualBars = document.querySelectorAll('.visual-bar');
+const albumCover = document.getElementById('albumCover');
+const coverFallback = document.getElementById('coverFallback');
 
 let currentTrackIndex = 0;
 let isShuffle = false;
 let isRepeat = false;
+let audioContext = null;
+let analyser = null;
+let sourceNode = null;
+let frequencyData = null;
+let visualizerAnimationId = null;
+let coverRequestId = 0;
+const coverCache = new Map();
 
+// フォーマット時間を分:秒形式に変換
 function formatTime(seconds) {
     if (!Number.isFinite(seconds)) return '0:00';
 
@@ -46,6 +56,7 @@ function formatTime(seconds) {
     return `${minutes}:${remainingSeconds}`;
 }
 
+// ボタンのアクティブ状態
 function setActiveButton(button, isActive) {
     button.classList.toggle('bg-cyan-300', isActive);
     button.classList.toggle('text-slate-950', isActive);
@@ -53,6 +64,172 @@ function setActiveButton(button, isActive) {
     button.classList.toggle('text-slate-200', !isActive);
 }
 
+// ID3v2のシンクセーフ整数を読み取る
+function readSynchsafeInteger(bytes, offset) {
+    return (
+        (bytes[offset] << 21)
+        | (bytes[offset + 1] << 14)
+        | (bytes[offset + 2] << 7)
+        | bytes[offset + 3]
+    );
+}
+
+// ID3v2の整数をビッグエンディアンで読み取る
+function readBigEndianInteger(bytes, offset, length) {
+    let value = 0;
+
+    for (let i = 0; i < length; i += 1) {
+        value = (value << 8) | bytes[offset + i];
+    }
+
+    return value;
+}
+
+// ID3フレームIDを読み取る
+function readFrameId(bytes, offset, length) {
+    return String.fromCharCode(...bytes.slice(offset, offset + length));
+}
+
+// テキストの終端を見つける
+function findTextTerminator(bytes, offset, encoding) {
+    const step = encoding === 1 || encoding === 2 ? 2 : 1;
+
+    for (let i = offset; i < bytes.length - (step - 1); i += step) {
+        if (step === 1 && bytes[i] === 0) return i;
+        if (step === 2 && bytes[i] === 0 && bytes[i + 1] === 0) return i;
+    }
+
+    return -1;
+}
+
+// ID3v2のAPICフレームを解析してカバー画像を抽出
+function parseApicFrame(frameData) {
+    const encoding = frameData[0];
+    let offset = 1;
+    let mimeType = '';
+
+    while (offset < frameData.length && frameData[offset] !== 0) {
+        mimeType += String.fromCharCode(frameData[offset]);
+        offset += 1;
+    }
+
+    offset += 2;
+
+    const descriptionEnd = findTextTerminator(frameData, offset, encoding);
+    if (descriptionEnd === -1) return null;
+
+    const imageStart = descriptionEnd + (encoding === 1 || encoding === 2 ? 2 : 1);
+    const imageBytes = frameData.slice(imageStart);
+
+    if (!mimeType || imageBytes.length === 0) return null;
+
+    return URL.createObjectURL(new Blob([imageBytes], { type: mimeType }));
+}
+
+function parsePicFrame(frameData) {
+    const encoding = frameData[0];
+    const format = String.fromCharCode(...frameData.slice(1, 4)).toLowerCase();
+    const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+    const descriptionStart = 5;
+    const descriptionEnd = findTextTerminator(frameData, descriptionStart, encoding);
+
+    if (descriptionEnd === -1) return null;
+
+    const imageStart = descriptionEnd + (encoding === 1 || encoding === 2 ? 2 : 1);
+    const imageBytes = frameData.slice(imageStart);
+
+    if (imageBytes.length === 0) return null;
+
+    return URL.createObjectURL(new Blob([imageBytes], { type: mimeType }));
+}
+
+// ID3タグからカバー画像を抽出
+function extractCoverFromId3(arrayBuffer) {
+    const bytes = new Uint8Array(arrayBuffer);
+    if (readFrameId(bytes, 0, 3) !== 'ID3') return null;
+
+    const majorVersion = bytes[3];
+    const flags = bytes[5];
+    const tagEnd = 10 + readSynchsafeInteger(bytes, 6);
+    let offset = 10;
+
+    if (flags & 0x40) {
+        const extendedHeaderSize = majorVersion === 4
+            ? readSynchsafeInteger(bytes, offset)
+            : readBigEndianInteger(bytes, offset, 4) + 4;
+        offset += extendedHeaderSize;
+    }
+
+    while (offset < tagEnd) {
+        const frameIdLength = majorVersion === 2 ? 3 : 4;
+        const frameHeaderLength = majorVersion === 2 ? 6 : 10;
+        const frameId = readFrameId(bytes, offset, frameIdLength);
+
+        if (!frameId.trim() || /^\0+$/.test(frameId)) break;
+
+        const frameSize = majorVersion === 2
+            ? readBigEndianInteger(bytes, offset + 3, 3)
+            : majorVersion === 4
+                ? readSynchsafeInteger(bytes, offset + 4)
+                : readBigEndianInteger(bytes, offset + 4, 4);
+        const frameStart = offset + frameHeaderLength;
+        const frameEnd = frameStart + frameSize;
+
+        if (frameSize <= 0 || frameEnd > bytes.length) break;
+
+        if (frameId === 'APIC') {
+            return parseApicFrame(bytes.slice(frameStart, frameEnd));
+        }
+
+        if (frameId === 'PIC') {
+            return parsePicFrame(bytes.slice(frameStart, frameEnd));
+        }
+
+        offset = frameEnd;
+    }
+
+    return null;
+}
+
+// オーディオファイルのカバー画像を取得
+async function getCoverUrl(src) {
+    if (coverCache.has(src)) return coverCache.get(src);
+
+    try {
+        const response = await fetch(src);
+        if (!response.ok) throw new Error(`Failed to load ${src}`);
+
+        const coverUrl = extractCoverFromId3(await response.arrayBuffer());
+        coverCache.set(src, coverUrl);
+        return coverUrl;
+    } catch {
+        coverCache.set(src, null);
+        return null;
+    }
+}
+
+function setCover(coverUrl) {
+    albumCover.classList.toggle('hidden', !coverUrl);
+    coverFallback.classList.toggle('hidden', Boolean(coverUrl));
+
+    if (coverUrl) {
+        albumCover.src = coverUrl;
+    } else {
+        albumCover.removeAttribute('src');
+    }
+}
+
+async function updateCover(src) {
+    const requestId = ++coverRequestId;
+    setCover(null);
+
+    const coverUrl = await getCoverUrl(src);
+    if (requestId === coverRequestId) {
+        setCover(coverUrl);
+    }
+}
+
+// プレイリストのレンダリング
 function renderPlaylist() {
     playlist.innerHTML = '';
     trackCount.textContent = tracks.length;
@@ -88,6 +265,7 @@ function renderPlaylist() {
     });
 }
 
+// プレイリストの状態を更新
 function updatePlaylistState() {
     document.querySelectorAll('.playlist-item').forEach((item) => {
         const isActive = Number(item.dataset.trackIndex) === currentTrackIndex;
@@ -101,6 +279,7 @@ function updatePlaylistState() {
     });
 }
 
+// トラックを読み込む
 function loadTrack(index) {
     currentTrackIndex = index;
     const track = tracks[currentTrackIndex];
@@ -112,16 +291,44 @@ function loadTrack(index) {
     currentTime.textContent = '0:00';
     duration.textContent = '0:00';
     updatePlaylistState();
+    updateCover(track.src);
 }
 
+// オーディオアナライザーのセットアップ
+function setupAudioAnalyzer() {
+    if (analyser) return;
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+
+    audioContext = new AudioContext();
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.82;
+    frequencyData = new Uint8Array(analyser.frequencyBinCount);
+
+    sourceNode = audioContext.createMediaElementSource(audio);
+    sourceNode.connect(analyser);
+    analyser.connect(audioContext.destination);
+}
+
+// オーディオの再生
 function playAudio() {
+    setupAudioAnalyzer();
+
+    if (audioContext?.state === 'suspended') {
+        audioContext.resume();
+    }
+
     audio.play();
 }
 
+// オーディオの一時停止
 function pauseAudio() {
     audio.pause();
 }
 
+// 再生/一時停止の切り替え
 function togglePlayback() {
     if (audio.paused) {
         playAudio();
@@ -130,6 +337,7 @@ function togglePlayback() {
     }
 }
 
+// 次のトラックのインデックスを取得
 function getNextIndex() {
     if (!isShuffle) return (currentTrackIndex + 1) % tracks.length;
 
@@ -142,73 +350,138 @@ function getNextIndex() {
     return nextIndex;
 }
 
+// 次のトラックを再生
 function nextTrack() {
     loadTrack(getNextIndex());
     playAudio();
 }
 
+// 前のトラックを再生
 function prevTrack() {
     const prevIndex = (currentTrackIndex - 1 + tracks.length) % tracks.length;
     loadTrack(prevIndex);
     playAudio();
 }
 
+// オーディオの進行状況を更新
 function updateProgress() {
     progressBar.value = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
     currentTime.textContent = formatTime(audio.currentTime);
 }
 
+// オーディオのシーク
 function seekAudio() {
     if (!audio.duration) return;
-
     audio.currentTime = (Number(progressBar.value) / 100) * audio.duration;
 }
 
+// オーディオビジュアライザーの更新
 function updateVisualizer() {
+    visualizerAnimationId = null;
     visualizer.classList.toggle('opacity-60', audio.paused);
+
+    // 周波数データが取得できない場合や、音声が一時停止中の場合は、デフォルトのバーの高さを設定
+    if (!analyser || !frequencyData || audio.paused) {
+        visualBars.forEach((bar, index) => {
+            const height = 18 + (index % 5) * 9;
+            bar.style.height = `${height}px`;
+        });
+        return;
+    }
+
+    // 周波数データを取得
+    analyser.getByteFrequencyData(frequencyData);
+    // 周波数データの長さを可視化バーの数で割り、各バーに対応する周波数データの範囲を計算
+    const binSize = Math.floor(frequencyData.length / visualBars.length);
+
+    // 各バーの高さを計算し、スタイルを更新
     visualBars.forEach((bar, index) => {
-        const height = audio.paused ? 18 + (index % 5) * 9 : 18 + Math.random() * 100;
+        const start = index * binSize;
+        const end = index === visualBars.length - 1 ? frequencyData.length : start + binSize;
+        let total = 0;
+
+        for (let i = start; i < end; i += 1) {
+            total += frequencyData[i];
+        }
+
+        const average = total / (end - start || 1);
+        const height = 10 + (average / 255) * 118;
         bar.style.height = `${height}px`;
     });
+
+    // updateVisualizer関数を再度呼び出し
+    visualizerAnimationId = requestAnimationFrame(updateVisualizer);
 }
 
+// オーディオビジュアライザーの開始
+function startVisualizer() {
+    if (!visualizerAnimationId) {
+        visualizerAnimationId = requestAnimationFrame(updateVisualizer);
+    }
+}
+
+// オーディオビジュアライザーの停止
+function stopVisualizer() {
+    if (visualizerAnimationId) {
+        cancelAnimationFrame(visualizerAnimationId);
+        visualizerAnimationId = null;
+    }
+
+    updateVisualizer();
+}
+
+// 再生ボタンイベント
 playBtn.addEventListener('click', togglePlayback);
+// 前のトラックボタンイベント
 prevBtn.addEventListener('click', prevTrack);
+// 次のトラックボタンイベント
 nextBtn.addEventListener('click', nextTrack);
+// 進行状況バーイベント
 progressBar.addEventListener('input', seekAudio);
 
+// 音量バーイベント
 volumeBar.addEventListener('input', (event) => {
     audio.volume = Number(event.target.value);
 });
 
+// 速度セレクトイベント
 speedSelect.addEventListener('change', (event) => {
     audio.playbackRate = Number(event.target.value);
 });
 
+// シャッフルボタンイベント
 shuffleBtn.addEventListener('click', () => {
     isShuffle = !isShuffle;
     setActiveButton(shuffleBtn, isShuffle);
 });
 
+// リピートボタンイベント
 repeatBtn.addEventListener('click', () => {
     isRepeat = !isRepeat;
     setActiveButton(repeatBtn, isRepeat);
 });
 
+// オーディオ再生イベント
 audio.addEventListener('play', () => {
     playBtn.textContent = 'Ⅱ';
+    startVisualizer();
 });
 
+// オーディオ一時停止イベント
 audio.addEventListener('pause', () => {
     playBtn.textContent = '▶';
+    stopVisualizer();
 });
 
+// オーディオのメタデータが読み込み完了イベント
 audio.addEventListener('loadedmetadata', () => {
     duration.textContent = formatTime(audio.duration);
 });
 
+// オーディオのタイム更新イベント
 audio.addEventListener('timeupdate', updateProgress);
 
+// オーディオの再生終了イベント
 audio.addEventListener('ended', () => {
     if (isRepeat) {
         audio.currentTime = 0;
@@ -223,4 +496,4 @@ renderPlaylist();
 loadTrack(currentTrackIndex);
 audio.volume = Number(volumeBar.value);
 audio.playbackRate = Number(speedSelect.value);
-setInterval(updateVisualizer, 220);
+updateVisualizer();
