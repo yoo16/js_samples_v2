@@ -62,6 +62,7 @@ function createBarChart(labels, groups, colors) {
         borderRadius: 4,
         borderSkipped: false,
     }));
+
     new Chart(barCtx, {
         type: 'bar',
         data: { labels, datasets },

@@ -81,36 +81,7 @@
 
     <script src="js/player.js"></script>
     <script>
-        // ─── Parallax scroll handler ───
-        const parallaxGrid = document.getElementById('parallax-grid');
-        const parallaxGlow = document.getElementById('parallax-glow');
 
-        window.addEventListener('scroll', () => {
-            const y = window.scrollY;
-            parallaxGrid.style.transform = `translateY(${y * 0.25}px)`;
-            parallaxGlow.style.transform  = `translateY(${y * 0.15}px)`;
-        }, { passive: true });
-
-        // ─── Typewriter ───
-        function typeWriter(el, text, speed = 75) {
-            el.textContent = '';
-            const cursor = document.createElement('span');
-            cursor.className = 'tw-cursor';
-            el.appendChild(cursor);
-            let i = 0;
-            const tick = setInterval(() => {
-                if (i < text.length) {
-                    cursor.insertAdjacentText('beforebegin', text[i++]);
-                } else {
-                    clearInterval(tick);
-                }
-            }, speed);
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const el = document.getElementById('header-title');
-            typeWriter(el, el.dataset.text);
-        });
     </script>
 
 </body>

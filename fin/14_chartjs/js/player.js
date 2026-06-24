@@ -1,11 +1,15 @@
 // キャラクターデータ変数
-let playerChart;
 let playersList = [];
+let playerChart;
+// Canvasのコンテキストを取得
+const playerCanvas = document.getElementById('playerChart');
+const ctx = playerCanvas.getContext('2d');
 
 // DOM要素の参照を取得
 const playerImageWrapper = document.getElementById('player-image-wrapper');
 const playerImage = document.getElementById('playerImage');
 const playerName = document.getElementById('player-name');
+const thumbnailContainer = document.getElementById('thumbnailContainer');
 
 // ノイズエフェクトのフレーム数と画像切り替えタイミング
 const TOTAL_FRAMES = 100;
@@ -44,8 +48,6 @@ const chartCustom = {
 
 // チャートを生成する関数
 function createChart(chartConfig) {
-    // Canvasのコンテキストを取得
-    const ctx = document.getElementById('playerChart').getContext('2d');
     // 既存のチャートがあれば破棄してから新規作成
     if (playerChart) playerChart.destroy();
 
@@ -63,9 +65,11 @@ function createChart(chartConfig) {
 
 // サムネイル生成とクリックイベント
 function createThumbnails(players) {
-    const container = document.getElementById('thumbnailContainer');
-    container.innerHTML = '';
-    players.forEach(player => container.appendChild(createThumbnail(player)));
+    thumbnailContainer.innerHTML = '';
+    players.map((player) => {
+        const thumb = createThumbnail(player);
+        thumbnailContainer.appendChild(thumb);
+    });
 }
 
 // サムネイル要素を生成し、クリックでプレイヤーデータを読み込むイベントを設定
@@ -132,6 +136,7 @@ async function init() {
 
 // ─── ノイズエフェクト付き画像切り替え ───
 function transitionImage(newSrc) {
+    // 画像を一旦空にしてからノイズエフェクトを開始
     playerImage.src = "";
 
     // ノイズキャンバスを取得または作成
@@ -153,7 +158,10 @@ function transitionImage(newSrc) {
 
     // Canvasの2Dコンテキストを取得
     const ctx = document.createElementNS ? canvas.getContext('2d') : null;
-    if (!ctx) { playerImage.src = newSrc; return; }
+    if (!ctx) {
+        playerImage.src = newSrc;
+        return;
+    }
 
     let frame = 0;
     let swapped = false;
@@ -227,6 +235,28 @@ function transitionImage(newSrc) {
     // アニメーション開始
     requestAnimationFrame(drawNoise);
 }
+
+// Typewriter
+function typeWriter(el, text, speed = 75) {
+    el.textContent = '';
+    const cursor = document.createElement('span');
+    cursor.className = 'tw-cursor';
+    el.appendChild(cursor);
+    let i = 0;
+    const tick = setInterval(() => {
+        if (i < text.length) {
+            cursor.insertAdjacentText('beforebegin', text[i++]);
+        } else {
+            clearInterval(tick);
+        }
+    }, speed);
+}
+
+// DOMContentLoadedイベントでTypewriterを初期化
+document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('header-title');
+    typeWriter(el, el.dataset.text);
+});
 
 // ページロード時に初期化関数を呼び出す
 window.addEventListener('load', init);
