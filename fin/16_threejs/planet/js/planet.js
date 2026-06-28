@@ -90,6 +90,8 @@ let trackedPlanet = null;
 planets.forEach(planet => {
     const li = document.createElement('li');
     li.textContent = planet.name;
+    li.tabIndex = 0;
+    li.className = 'cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white focus:outline-none focus:ring-2 focus:ring-orange-300';
     li.addEventListener('click', () => {
         // ズーム
         zoomStart.copy(camera.position);
@@ -99,6 +101,12 @@ planets.forEach(planet => {
         isZooming = true;
         // 追跡惑星設定
         trackedPlanet = planet;
+    });
+    li.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            li.click();
+        }
     });
     planetListEl.appendChild(li);
 });
