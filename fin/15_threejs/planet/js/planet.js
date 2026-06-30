@@ -23,12 +23,6 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// テクスチャ
-const textureLoader = new THREE.TextureLoader();
-const glowTexture = textureLoader.load("./textures/glow.png");
-if (THREE.SRGBColorSpace) {
-    glowTexture.colorSpace = THREE.SRGBColorSpace;
-}
 
 // TODO: シーンに太陽を追加
 const createSun = () => {
@@ -57,18 +51,24 @@ const createSun = () => {
 };
 
 const createSunGlow = (sunMesh, color, opacity, size) => {
-    const sprite = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-            map: glowTexture,
-            color,
-            transparent: true,
-            opacity,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-            depthTest: false,
-        })
-    );
+    // テクスチャ
+    const textureLoader = new THREE.TextureLoader();
+    const glowTexture = textureLoader.load("./textures/glow.png");
+    if (THREE.SRGBColorSpace) {
+        glowTexture.colorSpace = THREE.SRGBColorSpace;
+    }
 
+    //  スプライトを作成してシーンに追加
+    const material = new THREE.SpriteMaterial({
+        map: glowTexture,
+        color,
+        transparent: true,
+        opacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        depthTest: false,
+    })
+    const sprite = new THREE.Sprite(material);
     sprite.scale.set(size, size, 1);
     sprite.position.copy(sunMesh.position);
     sprite.renderOrder = -1;
