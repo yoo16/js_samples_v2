@@ -1,7 +1,7 @@
 // 色設定
 const backgroundColor = '#000000';
 const orbitLineColor = '#ffffff';
-const pointLightColor = '#ffffff';
+const pointLightColor = '#ffaa33';
 
 // シーンの初期化
 const scene = new THREE.Scene();
@@ -19,20 +19,76 @@ camera.lookAt(defaultLookAt);
 
 // WebGLレンダリング
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// TODO: シーンに太陽を追加
-const sun = new THREE.Mesh(
-    new THREE.SphereGeometry(10, 32, 32),
-    new THREE.MeshBasicMaterial({ color: 0xff5500 })
-);
-scene.add(sun);
+// テクスチャ
+const textureLoader = new THREE.TextureLoader();
+const glowTexture = textureLoader.load("./textures/glow.png");
+if (THREE.SRGBColorSpace) {
+    glowTexture.colorSpace = THREE.SRGBColorSpace;
+}
 
-// TODO: --- 環境光 ---
-const pointLight = new THREE.PointLight(pointLightColor, 1.5, 0);
-pointLight.position.copy(sun.position);
-scene.add(pointLight);
+// TODO: シーンに太陽を追加
+const createSun = () => {
+    // 太陽本体
+    const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(10, 32, 32),
+        new THREE.MeshBasicMaterial({ color: 0xff7a00 })
+    );
+    scene.add(mesh);
+
+    // 光源
+    const light = new THREE.PointLight(pointLightColor, 5, 420);
+    light.position.copy(mesh.position);
+    scene.add(light);
+
+    // 太陽のフレアを追加
+    const coreGlow = createSunGlow(mesh, 0xfff0aa, 1.0, 42);
+    const outerGlow = createSunGlow(mesh, 0xff7a00, 0.55, 105);
+
+    return {
+        mesh,
+        light,
+        coreGlow,
+        outerGlow,
+    };
+};
+
+const createSunGlow = (sunMesh, color, opacity, size) => {
+    const sprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+            map: glowTexture,
+            color,
+            transparent: true,
+            opacity,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            depthTest: false,
+        })
+    );
+
+    sprite.scale.set(size, size, 1);
+    sprite.position.copy(sunMesh.position);
+    sprite.renderOrder = -1;
+    scene.add(sprite);
+    return sprite;
+};
+
+const animateSun = (sun) => {
+    const time = performance.now() * 0.001;
+
+    sun.mesh.rotation.y += 0.005;
+
+    const coreScale = 42 + Math.sin(time * 2.4) * 4;
+    const outerScale = 105 + Math.sin(time * 1.6) * 8;
+    sun.coreGlow.scale.set(coreScale, coreScale, 1);
+    sun.outerGlow.scale.set(outerScale, outerScale, 1);
+    sun.coreGlow.material.opacity = 0.9 + Math.sin(time * 2.4) * 0.1;
+    sun.outerGlow.material.opacity = 0.45 + Math.sin(time * 1.6) * 0.08;
+};
+
 
 // --- 惑星 ---
 const planets = [];
@@ -91,7 +147,7 @@ planets.forEach(planet => {
     const li = document.createElement('li');
     li.textContent = planet.name;
     li.tabIndex = 0;
-    li.className = 'cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white focus:outline-none focus:ring-2 focus:ring-orange-300';
+    li.className = 'cursor-pointer rounded-md px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white';
     li.addEventListener('click', () => {
         // ズーム
         zoomStart.copy(camera.position);
@@ -125,6 +181,9 @@ document.getElementById('resetButton').addEventListener('click', () => {
 function animate() {
     requestAnimationFrame(animate);
     const elapsed = performance.now() / 1000;
+
+    // 太陽の回転とフレアのスケール変化
+    animateSun(sun);
 
     // 惑星の軌道更新
     planets.forEach(planet => {
@@ -163,6 +222,9 @@ window.addEventListener("resize", () => {
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
 });
+
+// 太陽作成
+const sun = createSun();
 
 // アニメーション開始
 animate();
