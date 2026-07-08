@@ -28,21 +28,8 @@
                 </section>
 
                 <!-- Visualizer -->
-                <section class="overflow-hidden rounded-2xl bg-slate-900/80 p-4">
-                    <div id="visualizer" class="flex h-32 items-end justify-center gap-1.5">
-                        <span class="visual-bar h-8 w-2 rounded-full bg-cyan-300/80"></span>
-                        <span class="visual-bar h-14 w-2 rounded-full bg-fuchsia-300/80"></span>
-                        <span class="visual-bar h-20 w-2 rounded-full bg-cyan-300/80"></span>
-                        <span class="visual-bar h-10 w-2 rounded-full bg-violet-300/80"></span>
-                        <span class="visual-bar h-24 w-2 rounded-full bg-cyan-300/80"></span>
-                        <span class="visual-bar h-16 w-2 rounded-full bg-fuchsia-300/80"></span>
-                        <span class="visual-bar h-28 w-2 rounded-full bg-cyan-300/80"></span>
-                        <span class="visual-bar h-12 w-2 rounded-full bg-violet-300/80"></span>
-                        <span class="visual-bar h-20 w-2 rounded-full bg-cyan-300/80"></span>
-                        <span class="visual-bar h-10 w-2 rounded-full bg-fuchsia-300/80"></span>
-                        <span class="visual-bar h-24 w-2 rounded-full bg-cyan-300/80"></span>
-                        <span class="visual-bar h-14 w-2 rounded-full bg-violet-300/80"></span>
-                    </div>
+                <section id="visualizer" class="h-40 overflow-hidden rounded-2xl bg-slate-900/80">
+                    <canvas id="visualizerCanvas" class="block h-full w-full" aria-label="Audio visualizer"></canvas>
                 </section>
 
                 <!-- Progress Bar -->
@@ -112,6 +99,7 @@
     </main>
 
     <audio id="audio"></audio>
+    <script src="js/visualizer.js" defer></script>
     <script src="js/app.js" defer></script>
 </body>
 

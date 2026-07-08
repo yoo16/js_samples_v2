@@ -1,21 +1,4 @@
-const tracks = [
-    {
-        title: 'Music 1',
-        artist: 'Artist 1',
-        src: 'audio/music1.mp3',
-    },
-    {
-        title: 'Music 2',
-        artist: 'Artist 2',
-        src: 'audio/music2.mp3',
-    },
-    {
-        title: 'Music 3',
-        artist: 'Artist 3',
-        src: 'audio/music3.mp3',
-    },
-];
-
+const tracks = [];
 const audio = document.getElementById('audio');
 const trackTitle = document.getElementById('trackTitle');
 const trackArtist = document.getElementById('trackArtist');
@@ -32,7 +15,7 @@ const repeatBtn = document.getElementById('repeatBtn');
 const volumeBar = document.getElementById('volumeBar');
 const speedSelect = document.getElementById('speedSelect');
 const visualizer = document.getElementById('visualizer');
-const visualBars = document.querySelectorAll('.visual-bar');
+const visualizerCanvas = document.getElementById('visualizerCanvas');
 const albumCover = document.getElementById('albumCover');
 const coverFallback = document.getElementById('coverFallback');
 
@@ -42,10 +25,29 @@ let isRepeat = false;
 let audioContext = null;
 let analyser = null;
 let sourceNode = null;
-let frequencyData = null;
-let visualizerAnimationId = null;
 let coverRequestId = 0;
 const coverCache = new Map();
+const audioVisualizer = new AudioVisualizer(visualizerCanvas, {
+    getAnalyser: () => analyser,
+    isPlaying: () => !audio.paused,
+});
+
+async function fetchTracks() {
+    try {
+        // api/audio.jsonからトラック情報を取得
+        const response = await fetch('api/audio.json');
+        // レスポンスが正常でない場合はエラーをスロー
+        const data = await response.json();
+        // tracks配列に取得したトラック情報を追加
+        tracks.push(...data);
+        // プレイリストをレンダリングし、最初のトラックを読み込む
+        renderPlaylist();
+        // 現在のトラックインデックスに基づいてトラックを読み込む
+        loadTrack(currentTrackIndex);
+    } catch (error) {
+        console.error('Error loading tracks:', error);
+    }
+}
 
 // フォーマット時間を分:秒形式に変換
 function formatTime(seconds) {
@@ -108,58 +110,76 @@ function parseApicFrame(frameData) {
     let offset = 1;
     let mimeType = '';
 
+    // MIMEタイプを読み取る
     while (offset < frameData.length && frameData[offset] !== 0) {
         mimeType += String.fromCharCode(frameData[offset]);
         offset += 1;
     }
-
     offset += 2;
 
+    // 説明テキストの終端を見つける
     const descriptionEnd = findTextTerminator(frameData, offset, encoding);
     if (descriptionEnd === -1) return null;
 
+    // 画像データの開始位置を計算
     const imageStart = descriptionEnd + (encoding === 1 || encoding === 2 ? 2 : 1);
+    // 画像データを抽出
     const imageBytes = frameData.slice(imageStart);
-
+    // MIMEタイプが空、または画像データが空の場合はnull
     if (!mimeType || imageBytes.length === 0) return null;
 
-    return URL.createObjectURL(new Blob([imageBytes], { type: mimeType }));
+    // Blob URLを作成して返す
+    const blob = new Blob([imageBytes], { type: mimeType });
+    return URL.createObjectURL(blob);
 }
 
+// ID3v2のPICフレームを解析してカバー画像を抽出
 function parsePicFrame(frameData) {
     const encoding = frameData[0];
     const format = String.fromCharCode(...frameData.slice(1, 4)).toLowerCase();
+    // MIMEタイプを決定
     const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+    // 画像データの開始位置を計算
     const descriptionStart = 5;
     const descriptionEnd = findTextTerminator(frameData, descriptionStart, encoding);
 
     if (descriptionEnd === -1) return null;
 
+    // 画像データの開始位置を計算
     const imageStart = descriptionEnd + (encoding === 1 || encoding === 2 ? 2 : 1);
+    // 画像データを抽出
     const imageBytes = frameData.slice(imageStart);
+    // MIMEタイプが空、または画像データが空の場合はnull
+    if (!mimeType || imageBytes.length === 0) return null;
 
-    if (imageBytes.length === 0) return null;
-
-    return URL.createObjectURL(new Blob([imageBytes], { type: mimeType }));
+    const blob = new Blob([imageBytes], { type: mimeType });
+    return URL.createObjectURL(blob);
 }
 
 // ID3タグからカバー画像を抽出
 function extractCoverFromId3(arrayBuffer) {
+    // Uint8Arrayを作成してID3タグの存在を確認
     const bytes = new Uint8Array(arrayBuffer);
+    // ID3タグが存在しない場合はnullを返す
     if (readFrameId(bytes, 0, 3) !== 'ID3') return null;
 
+    // ID3タグのバージョン
     const majorVersion = bytes[3];
+    // ID3タグのフラグ
     const flags = bytes[5];
+    // ID3タグの終了位置を計算
     const tagEnd = 10 + readSynchsafeInteger(bytes, 6);
     let offset = 10;
 
     if (flags & 0x40) {
+        // 拡張ヘッダーが存在する場合は、拡張ヘッダーのサイズを読み取り、オフセットを更新
         const extendedHeaderSize = majorVersion === 4
             ? readSynchsafeInteger(bytes, offset)
             : readBigEndianInteger(bytes, offset, 4) + 4;
         offset += extendedHeaderSize;
     }
 
+    // フレームをループしてAPICまたはPICフレームを探す
     while (offset < tagEnd) {
         const frameIdLength = majorVersion === 2 ? 3 : 4;
         const frameHeaderLength = majorVersion === 2 ? 6 : 10;
@@ -219,6 +239,7 @@ function setCover(coverUrl) {
     }
 }
 
+// オーディオファイルのカバー画像を更新
 async function updateCover(src) {
     const requestId = ++coverRequestId;
     setCover(null);
@@ -301,25 +322,31 @@ function setupAudioAnalyzer() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
 
+    // オーディオコンテキスト
     audioContext = new AudioContext();
+    // アナライザーの作成
     analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
+    // FFTサイズ
+    analyser.fftSize = 1024;
+    // スムージングタイム定数
     analyser.smoothingTimeConstant = 0.82;
-    frequencyData = new Uint8Array(analyser.frequencyBinCount);
 
+    // オーディオソースノードを作成
     sourceNode = audioContext.createMediaElementSource(audio);
+    // オーディオソースノードをアナライザーに接続
     sourceNode.connect(analyser);
+    // アナライザーをオーディオコンテキストの出力に接続
     analyser.connect(audioContext.destination);
 }
 
 // オーディオの再生
 function playAudio() {
     setupAudioAnalyzer();
-
+    // サスペンド状態の場合は、オーディオコンテキストを再開
     if (audioContext?.state === 'suspended') {
         audioContext.resume();
     }
-
+    // オーディオを再生
     audio.play();
 }
 
@@ -339,15 +366,29 @@ function togglePlayback() {
 
 // 次のトラックのインデックスを取得
 function getNextIndex() {
-    if (!isShuffle) return (currentTrackIndex + 1) % tracks.length;
-
+    // トラックが1つしかない場合は、現在のトラックインデックスを返す
     if (tracks.length === 1) return currentTrackIndex;
+    // シャッフルが無効な場合は、次のトラックインデックスを返す
+    if (!isShuffle) return (currentTrackIndex + 1) % tracks.length;
+    // シャッフルの場合、ランダムなインデックスを返す
+    return getRandomIndex();
+}
 
-    let nextIndex = currentTrackIndex;
-    while (nextIndex === currentTrackIndex) {
-        nextIndex = Math.floor(Math.random() * tracks.length);
-    }
-    return nextIndex;
+// 前のトラックのインデックスを取得
+function getPrevIndex() {
+    // トラックが1つしかない場合は、現在のトラックインデックスを返す
+    if (tracks.length === 1) return currentTrackIndex;
+    // シャッフルが無効な場合は、前のトラックインデックスを返す
+    if (!isShuffle) return (currentTrackIndex - 1 + tracks.length) % tracks.length;
+    // シャッフルの場合、ランダムなインデックスを返す
+    return getRandomIndex();
+}
+
+// ランダムなインデックスを取得
+function getRandomIndex() {
+    if (tracks.length <= 1) return currentTrackIndex;
+    let randomIndex = Math.floor(Math.random() * tracks.length);
+    return randomIndex;
 }
 
 // 次のトラックを再生
@@ -358,76 +399,45 @@ function nextTrack() {
 
 // 前のトラックを再生
 function prevTrack() {
-    const prevIndex = (currentTrackIndex - 1 + tracks.length) % tracks.length;
-    loadTrack(prevIndex);
+    loadTrack(getPrevIndex());
     playAudio();
 }
 
 // オーディオの進行状況を更新
 function updateProgress() {
+    // オーディオの再生時間が取得できない場合は、進行状況バーを0に設定
     progressBar.value = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+    // オーディオの現在の再生時間をフォーマットして表示
     currentTime.textContent = formatTime(audio.currentTime);
 }
 
 // オーディオのシーク
 function seekAudio() {
     if (!audio.duration) return;
+    // 進行状況バーの値に基づいて、オーディオの再生位置を更新
     audio.currentTime = (Number(progressBar.value) / 100) * audio.duration;
+}
+
+function initVisualizer() {
+    // アイドル状態のフレームを描画
+    audioVisualizer.drawIdleFrame();
 }
 
 // オーディオビジュアライザーの更新
 function updateVisualizer() {
-    visualizerAnimationId = null;
     visualizer.classList.toggle('opacity-60', audio.paused);
-
-    // 周波数データが取得できない場合や、音声が一時停止中の場合は、デフォルトのバーの高さを設定
-    if (!analyser || !frequencyData || audio.paused) {
-        visualBars.forEach((bar, index) => {
-            const height = 18 + (index % 5) * 9;
-            bar.style.height = `${height}px`;
-        });
-        return;
-    }
-
-    // 周波数データを取得
-    analyser.getByteFrequencyData(frequencyData);
-    // 周波数データの長さを可視化バーの数で割り、各バーに対応する周波数データの範囲を計算
-    const binSize = Math.floor(frequencyData.length / visualBars.length);
-
-    // 各バーの高さを計算し、スタイルを更新
-    visualBars.forEach((bar, index) => {
-        const start = index * binSize;
-        const end = index === visualBars.length - 1 ? frequencyData.length : start + binSize;
-        let total = 0;
-
-        for (let i = start; i < end; i += 1) {
-            total += frequencyData[i];
-        }
-
-        const average = total / (end - start || 1);
-        const height = 10 + (average / 255) * 118;
-        bar.style.height = `${height}px`;
-    });
-
-    // updateVisualizer関数を再度呼び出し
-    visualizerAnimationId = requestAnimationFrame(updateVisualizer);
 }
 
 // オーディオビジュアライザーの開始
 function startVisualizer() {
-    if (!visualizerAnimationId) {
-        visualizerAnimationId = requestAnimationFrame(updateVisualizer);
-    }
+    updateVisualizer();
+    audioVisualizer.start();
 }
 
 // オーディオビジュアライザーの停止
 function stopVisualizer() {
-    if (visualizerAnimationId) {
-        cancelAnimationFrame(visualizerAnimationId);
-        visualizerAnimationId = null;
-    }
-
     updateVisualizer();
+    audioVisualizer.stop();
 }
 
 // 再生ボタンイベント
@@ -492,8 +502,14 @@ audio.addEventListener('ended', () => {
     nextTrack();
 });
 
-renderPlaylist();
-loadTrack(currentTrackIndex);
-audio.volume = Number(volumeBar.value);
-audio.playbackRate = Number(speedSelect.value);
-updateVisualizer();
+// オーディオ取得
+(async () => {
+    // トラック情報を取得
+    await fetchTracks();
+    // オーディオの音量
+    audio.volume = Number(volumeBar.value);
+    // オーディオの再生速度
+    audio.playbackRate = Number(speedSelect.value);
+    // オーディオビジュアライザーの初期状態を更新
+    initVisualizer();
+})();
