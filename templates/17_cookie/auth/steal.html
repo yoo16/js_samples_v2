@@ -46,14 +46,18 @@
                             placeholder="ここに HTML を入力"></textarea>
                     </div>
 
-                    <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
+                    <div class="grid grid-cols-3 gap-3">
                         <button id="draftBtn"
                             class="inline-flex min-h-11 items-center justify-center rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200">
                             下書き
                         </button>
                         <button id="rewrite"
                             class="inline-flex min-h-11 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-medium text-rose-700 transition hover:bg-rose-100 focus:outline-none focus:ring-4 focus:ring-rose-100">
-                            JSでCookieを書き換え
+                            XSS Cookie
+                        </button>
+                        <button id="remove"
+                            class="inline-flex min-h-11 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-medium text-rose-700 transition hover:bg-rose-100 focus:outline-none focus:ring-4 focus:ring-rose-100">
+                            Cookie削除
                         </button>
                     </div>
 
