@@ -1,7 +1,7 @@
 <?php
 // セッションCookie設定
 require 'session_init.php';
-
+// ヘッダー設定：JSON形式で返却することを明示
 header('Content-Type: application/json; charset=utf-8');
 
 // セッション変数を空に
@@ -10,10 +10,11 @@ unset($_SESSION['user']);
 // セッションCookieの削除（有効期限を過去に設定）
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();
+    // Cookieを削除
     setcookie(
         session_name(), // name
-        '',             // value
-        time() - 42000, // expire
+        '',             // value: データを空にする
+        time() - 42000, // expire: 過去の時間に設定して削除
         $params['path'],     // path
         $params['domain'],   // domain
         $params['secure'],   // secure

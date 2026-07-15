@@ -1,6 +1,6 @@
 <?php
 require 'session_init.php';
-
+// ヘッダー設定：JSON形式で返却することを明示
 header('Content-Type: application/json; charset=utf-8');
 
 // まだトークンが無ければ生成
