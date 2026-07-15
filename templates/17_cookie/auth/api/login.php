@@ -1,6 +1,11 @@
 <?php
 // テスト用ユーザ
 require 'test_user.php';
+if (!isset($user)) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Test user not found']);
+    exit;
+}
 
 // セッションCookie設定
 require 'session_init.php';
@@ -12,6 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 header('Content-Type: application/json; charset=utf-8');
+
+// CSRFチェック
+$client_token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $client_token)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Invalid CSRF token']);
+    exit;
+}
 
 // 入力取得
 $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;

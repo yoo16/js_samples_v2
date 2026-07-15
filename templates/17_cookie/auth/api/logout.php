@@ -14,10 +14,10 @@ if (ini_get("session.use_cookies")) {
         session_name(), // name
         '',             // value
         time() - 42000, // expire
-        '/',            // path
-        '',             // domain
-        false,          // secure
-        true            // httponly
+        $params['path'],     // path
+        $params['domain'],   // domain
+        $params['secure'],   // secure
+        $params['httponly']  // httponly
     );
 }
 

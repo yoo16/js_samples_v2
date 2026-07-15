@@ -9,39 +9,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 </head>
 
-<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 text-slate-800 antialiased">
-    <main id="main" class="flex items-center justify-center min-h-screen p-4">
-        <div class="w-full max-w-md">
-            <!-- Card -->
-            <div class="bg-white/90 backdrop-blur shadow-xl rounded-2xl border border-slate-200">
-                <!-- Header -->
-                <div class="p-6 border-b border-slate-100">
-                    <h1 class="text-xl font-semibold tracking-tight text-slate-900">Mini Cookie + HttpOnly 認証</h1>
+<body class="min-h-screen bg-slate-100 text-slate-800 antialiased">
+    <main id="main" class="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+        <div class="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+            <section class="space-y-6">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-wider text-rose-700">XSS Cookie Lab</p>
+                    <h1 class="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Cookie 盗み見デモ</h1>
+                    <p class="mt-4 max-w-xl text-sm leading-6 text-slate-600">
+                        入力した HTML をそのまま描画した場合に、JavaScript から Cookie がどう見えるかを確認します。
+                    </p>
                 </div>
 
-                <div class="p-6 space-y-6">
-                    <div class="grid grid-cols-1 gap-3">
-                        <textarea name="content" id="content"></textarea>
+                <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                    <p class="font-semibold">入力例</p>
+                    <code class="mt-2 block overflow-x-auto rounded-md bg-white px-3 py-2 text-xs text-slate-800">&lt;img src="x" onerror="alert(document.cookie)"&gt;</code>
+                </div>
+            </section>
+
+            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70">
+                <div class="border-b border-slate-200 px-6 py-5">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            &lt;img src="x" onerror="alert(document.cookie)"&gt;
+                            <p class="text-sm font-medium text-slate-500">Unsafe preview</p>
+                            <h2 class="text-xl font-semibold tracking-tight text-slate-950">下書きプレビュー</h2>
                         </div>
+                        <span class="inline-flex w-fit rounded-full bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700">innerHTML</span>
                     </div>
-                    <div class="grid grid-cols-1 gap-3">
-                        <button id="draftBtn" class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">下書き</button>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button id="rewrite" class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">JSでCookieを書き換え</button>
+                </div>
+
+                <div class="space-y-6 p-6">
+                    <div class="space-y-2">
+                        <label for="content" class="block text-sm font-medium text-slate-700">HTML 入力</label>
+                        <textarea name="content" id="content" rows="8"
+                            class="min-h-44 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-mono text-sm text-slate-950 shadow-sm outline-none transition focus:border-rose-500 focus:ring-4 focus:ring-rose-100"
+                            placeholder="ここに HTML を入力"></textarea>
                     </div>
 
-                    <!-- Output -->
+                    <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
+                        <button id="draftBtn"
+                            class="inline-flex min-h-11 items-center justify-center rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200">
+                            下書き
+                        </button>
+                        <button id="rewrite"
+                            class="inline-flex min-h-11 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-medium text-rose-700 transition hover:bg-rose-100 focus:outline-none focus:ring-4 focus:ring-rose-100">
+                            JSでCookieを書き換え
+                        </button>
+                    </div>
+
                     <div class="space-y-2">
                         <label class="block text-sm font-medium text-slate-700">レスポンス</label>
                         <div id="out"
-                            class="h-48 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-800"></div>
+                            class="h-80 max-w-full overflow-auto rounded-lg border border-slate-200 bg-slate-950 p-4 text-xs leading-relaxed text-slate-100 shadow-inner"></div>
                     </div>
                 </div>
-
-            </div>
+            </section>
         </div>
     </main>
 

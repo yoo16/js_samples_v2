@@ -10,7 +10,7 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 
-// CSRFトークン初期化チェック
+// CSRFトークンチェック
 if (!isset($_SESSION['csrf_token'])) {
     http_response_code(403);
     echo json_encode(['error' => 'CSRF token not initialized']);

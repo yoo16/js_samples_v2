@@ -15,7 +15,7 @@ function applyTheme(value, save = false) {
     console.log("テーマ:", theme);
 
     // TODO: html要素(rootオブジェクト）に dark クラスをトグル設定
-    root.classList.toggle("dark", theme === "dark");
+    // root.classList.toggle("dark", theme === "dark");
 
     // ラベル、アイコン更新
     if (label) label.textContent = theme === "dark" ? "ダーク" : "ライト";
@@ -35,7 +35,7 @@ function applyTheme(value, save = false) {
 
 // テーマ切り替え
 function toggleTheme() {
-    // TODO: 現在の状態を反転: theme = dark / light
+    // 現在の状態を反転: theme = dark / light
     const next = (theme === "dark") ? "light" : "dark";
     // Themeを適用
     applyTheme(next, true);
@@ -61,15 +61,15 @@ window.addEventListener("DOMContentLoaded", () => {
     document.getElementById("themeBtn")?.addEventListener("click", toggleTheme);
 
     // TODO: OS やブラウザのダークモード設定が切り替わった時に、サイトのテーマも自動で切り替える処理
-    if (window.matchMedia) {
-        const media = matchMedia("(prefers-color-scheme: dark)");
-        media.addEventListener("change", (e) => {
-            // Cookieに保存されていない場合のみ反映
-            console.log(e.matches);
-            if (!getCookie(THEME_KEY)) {
-                // TODO: e.matches の値に応じて applyTheme を呼び出し
-                applyTheme(e.matches ? "dark" : "light");
-            }
-        });
-    }
+    // if (window.matchMedia) {
+    //     const media = matchMedia("(prefers-color-scheme: dark)");
+    //     media.addEventListener("change", (e) => {
+    //         // Cookieに保存されていない場合のみ反映
+    //         console.log(e.matches);
+    //         if (!getCookie(THEME_KEY)) {
+    //             // TODO: e.matches の値に応じて applyTheme を呼び出し
+    //             applyTheme(e.matches ? "dark" : "light");
+    //         }
+    //     });
+    // }
 });

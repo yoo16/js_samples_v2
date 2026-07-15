@@ -2,6 +2,7 @@
     let csrfToken = null;
     const $ = (sel) => document.querySelector(sel);
     const out = (v) => { $("#out").textContent = JSON.stringify(v, null, 2); };
+    const csrfTokenElement = $("#csrf-token");
 
     // CSRFトークンを初期化
     initCsrf();
@@ -15,12 +16,14 @@
         });
         const data = await res.json();
         csrfToken = data.csrf_token;
+        csrfTokenElement.textContent = csrfToken;
     }
 
+    // POSTでJSONを送信する
     async function postJSON(url, body) {
         const res = await fetch(url, {
             method: "POST",
-            // TODO: CSRFトークンをヘッダーにセット
+            // CSRFトークンをヘッダーにセット
             headers: {
                 "Content-Type": "application/json",
                 ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {})
@@ -34,6 +37,7 @@
     }
 
     async function getJSON(url) {
+        // TODO: GETでユーザ情報を取得
         const res = await fetch(url, {
             credentials: "same-origin",
         });
@@ -50,6 +54,8 @@
             const data = await postJSON("./api/login.php", { email, password });
             // データの中から、CSRFトークンを更新
             csrfToken = data.csrf_token || null;
+
+            csrfTokenElement.textContent = csrfToken;
             out(data);
         });
 

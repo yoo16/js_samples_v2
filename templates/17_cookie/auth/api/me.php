@@ -1,13 +1,5 @@
 <?php
-session_name('sid');
-session_set_cookie_params([
-    'lifetime' => 3600,
-    'path'     => '/',
-    'secure'   => false,   // 本番は true（HTTPS必須）
-    'httponly' => true,
-    'samesite' => 'Lax',
-]);
-session_start();
+require 'session_init.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -18,7 +10,7 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 
-// CSRFチェック
+// CSRFトークンチェック
 if (!isset($_SESSION['csrf_token'])) {
     http_response_code(403);
     echo json_encode(['error' => 'CSRF token not initialized']);
