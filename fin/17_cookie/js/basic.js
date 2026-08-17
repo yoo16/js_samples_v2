@@ -1,15 +1,29 @@
 // Cookieのキー: ユーザー名
 const KEY = "account_name";
 
+// Cookieのキー: 広告バナーを閉じたかどうか
+const AD_KEY = "ad_closed";
+const adBanner = document.getElementById("adBanner");
+
 // 初期表示
 showCookies();
 
-document.getElementById("testBtn").addEventListener("click", () => {
-    document.cookie = "city=東京";
+// 前回閉じていれば（Cookieが残っていれば）、最初から広告を非表示にする
+if (getCookie(AD_KEY)) {
+    adBanner.classList.add("hidden");
+}
+
+// 閉じるボタン：7日間表示しないようCookieに記録する
+document.getElementById("adCloseBtn").addEventListener("click", () => {
+    setCookie(AD_KEY, "1", "max-age", null, 60 * 60 * 24 * 7);
+    adBanner.classList.add("hidden");
     showCookies();
 });
-document.getElementById("deleteTestBtn").addEventListener("click", () => {
-    document.cookie = "city=; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+
+// リセットボタン：Cookieを削除して、次回から再び広告を表示する
+document.getElementById("adResetBtn").addEventListener("click", () => {
+    deleteCookie(AD_KEY);
+    adBanner.classList.remove("hidden");
     showCookies();
 });
 

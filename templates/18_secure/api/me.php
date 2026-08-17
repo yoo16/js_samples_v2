@@ -10,7 +10,9 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 
-// CSRFトークンチェック
+// TODO: 下のCSRFトークンチェックは実は不要です。
+//       GET（データを変更しない「安全な」リクエスト）にCSRF対策が不要な理由を考え、
+//       このブロックを削除してみましょう
 if (!isset($_SESSION['csrf_token'])) {
     http_response_code(403);
     echo json_encode(['error' => 'CSRF token not initialized']);

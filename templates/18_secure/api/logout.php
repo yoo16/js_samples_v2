@@ -4,6 +4,11 @@ require 'session_init.php';
 // ヘッダー設定：JSON形式で返却することを明示
 header('Content-Type: application/json; charset=utf-8');
 
+// TODO: ログアウトも状態を変更する処理なので、CSRFトークンを検証する
+//       ヒント: login.php の CSRFチェック部分を参考に、
+//       $_SERVER['HTTP_X_CSRF_TOKEN'] とセッションの csrf_token を hash_equals() で比較し、
+//       一致しなければ 403 を返して exit する
+
 // セッション変数を空に
 unset($_SESSION['user']);
 

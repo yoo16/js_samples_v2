@@ -10,8 +10,9 @@
     // CSRFトークンを取得する
     async function initCsrf() {
         // api/csrf.php からCSRFトークンを取得
+        // credentials: "include" を指定しないと sid Cookie が送られず、
+        // 毎回別セッション扱いになってトークンが一致しなくなる
         const res = await fetch("./api/csrf.php", {
-            // TODO: セッションCookie必須
             credentials: "include"
         });
         const data = await res.json();
@@ -23,7 +24,7 @@
     async function postJSON(url, body) {
         const res = await fetch(url, {
             method: "POST",
-            // TODO: CSRFトークンをヘッダーにセット
+            // CSRFトークンをヘッダーにセット
             headers: {
                 "Content-Type": "application/json",
                 ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {})
@@ -37,7 +38,7 @@
     }
 
     async function getJSON(url) {
-        // TODO: GETでユーザ情報を取得
+        // GETはCSRFトークン不要。sid Cookieを送るためcredentialsだけ指定する
         const res = await fetch(url, {
             credentials: "same-origin",
         });
@@ -50,13 +51,18 @@
         $("#login").addEventListener("click", async () => {
             const email = $("#email").value;
             const password = $("#password").value;
-            // api/login.php へPOST
-            const data = await postJSON("./api/login.php", { email, password });
-            // データの中から、CSRFトークンを更新
-            csrfToken = data.csrf_token || null;
+            try {
+                // api/login.php へPOST
+                const data = await postJSON("./api/login.php", { email, password });
+                // データの中から、CSRFトークンを更新
+                csrfToken = data.csrf_token || null;
 
-            csrfTokenElement.textContent = csrfToken;
-            out(data);
+                csrfTokenElement.textContent = csrfToken;
+                out(data);
+            } catch (err) {
+                // 403 Invalid CSRF Token などのエラーもレスポンスとして画面に表示する
+                out({ status: err.status, ...err.data });
+            }
         });
 
         // GET: api/me.php
@@ -67,8 +73,21 @@
 
         // POST: api/logout.php
         $("#logout").addEventListener("click", async () => {
-            const data = await postJSON("./api/logout.php", {});
-            out(data);
+            try {
+                const data = await postJSON("./api/logout.php", {});
+                out(data);
+                // logout.phpはセッションを丸ごと破棄するのでCSRFトークンも失効する
+                // → 次のログインに備えて新しいトークンを取得し直す
+                await initCsrf();
+            } catch (err) {
+                out({ status: err.status, ...err.data });
+            }
+        });
+
+        // document.cookie をそのまま画面に表示する
+        // HttpOnly なCookie（sid）はここに出てこない
+        $("#show-cookie").addEventListener("click", () => {
+            $("#cookie-view").textContent = document.cookie || "（空 — HttpOnlyなCookieはJSから読めません）";
         });
     });
 })();

@@ -1,9 +1,10 @@
 <?php
 require 'session_init.php';
-// ヘッダー設定：JSON形式で返却することを明示
+
 header('Content-Type: application/json; charset=utf-8');
 
 // まだトークンが無ければ生成
+// このトークンはセッションに保存され、フォーム送信時に一致するかをサーバー側で検証する（require_csrf.php）
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
