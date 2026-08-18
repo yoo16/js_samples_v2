@@ -12,9 +12,7 @@
         // api/csrf.php からCSRFトークンを取得
         // credentials: "include" を指定しないと sid Cookie が送られず、
         // 毎回別セッション扱いになってトークンが一致しなくなる
-        const res = await fetch("./api/csrf.php", {
-            credentials: "include"
-        });
+        const res = await fetch("./api/csrf.php", { credentials: "include" });
         const data = await res.json();
         csrfToken = data.csrf_token;
         csrfTokenElement.textContent = csrfToken;
@@ -34,15 +32,6 @@
         });
         let data = await res.json();
         if (!res.ok) throw { status: res.status, data };
-        return data;
-    }
-
-    async function getJSON(url) {
-        // GETはCSRFトークン不要。sid Cookieを送るためcredentialsだけ指定する
-        const res = await fetch(url, {
-            credentials: "same-origin",
-        });
-        const data = await res.json();
         return data;
     }
 
@@ -67,8 +56,9 @@
 
         // GET: api/me.php
         $("#me").addEventListener("click", async () => {
-            const data = await getJSON("./api/me.php");
-            out(data);
+            // GETはCSRFトークン不要。sid Cookieを送るためcredentialsだけ指定する
+            const res = await fetch("./api/me.php", { credentials: "same-origin" });
+            out(await res.json());
         });
 
         // POST: api/logout.php

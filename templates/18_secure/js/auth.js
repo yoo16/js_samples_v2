@@ -38,15 +38,6 @@
         return data;
     }
 
-    async function getJSON(url) {
-        // GETリクエストはCookie(sid)を送るだけでよく、CSRFトークンは不要
-        const res = await fetch(url, {
-            credentials: "same-origin",
-        });
-        const data = await res.json();
-        return data;
-    }
-
     window.addEventListener("DOMContentLoaded", () => {
         // POST: api/login.php
         $("#login").addEventListener("click", async () => {
@@ -68,8 +59,9 @@
 
         // GET: api/me.php
         $("#me").addEventListener("click", async () => {
-            const data = await getJSON("./api/me.php");
-            out(data);
+            // GETリクエストはCookie(sid)を送るだけでよく、CSRFトークンは不要
+            const res = await fetch("./api/me.php", { credentials: "same-origin" });
+            out(await res.json());
         });
 
         // POST: api/logout.php

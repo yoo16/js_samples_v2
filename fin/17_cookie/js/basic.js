@@ -9,20 +9,21 @@ const adBanner = document.getElementById("adBanner");
 showCookies();
 
 // 前回閉じていれば（Cookieが残っていれば）、最初から広告を非表示にする
-if (getCookie(AD_KEY)) {
+// ※ cookie.js の関数は使わず、document.cookie の基本文法だけで実装
+if (document.cookie.includes(`${AD_KEY}=`)) {
     adBanner.classList.add("hidden");
 }
 
-// 閉じるボタン：7日間表示しないようCookieに記録する
+// 閉じるボタン：7日間（60秒×60分×24時間×7日）表示しないようCookieに記録する
 document.getElementById("adCloseBtn").addEventListener("click", () => {
-    setCookie(AD_KEY, "1", "max-age", null, 60 * 60 * 24 * 7);
+    document.cookie = `${AD_KEY}=1; path=/; max-age=${60 * 60 * 24 * 7}`;
     adBanner.classList.add("hidden");
     showCookies();
 });
 
-// リセットボタン：Cookieを削除して、次回から再び広告を表示する
+// リセットボタン：有効期限を過去にしてCookieを削除し、次回から再び広告を表示する
 document.getElementById("adResetBtn").addEventListener("click", () => {
-    deleteCookie(AD_KEY);
+    document.cookie = `${AD_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
     adBanner.classList.remove("hidden");
     showCookies();
 });
