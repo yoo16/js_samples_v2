@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vanilla JS VTuber Face Tracking</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three/build/three.module.js",
+          "three/": "./vendor/three/",
+          "three/examples/jsm/loaders/GLTFLoader.js": "./vendor/three/examples/jsm/loaders/GLTFLoader.js",
+          "@pixiv/three-vrm": "./vendor/@pixiv/three-vrm/lib/three-vrm.module.js",
+          "@mediapipe/tasks-vision": "./vendor/@mediapipe/tasks-vision/vision_bundle.mjs"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="stage">
+        <canvas id="avatar-canvas" aria-label="VRM avatar preview"></canvas>
+        <video id="camera-video" playsinline muted></video>
+      </section>
+
+      <aside class="controls">
+        <div class="brand">
+          <h1>VRM Face Control</h1>
+        </div>
+
+        <label class="file-control">
+          <span>VRMモデル</span>
+          <input id="vrm-file" type="file" accept=".vrm,model/gltf-binary" />
+        </label>
+
+        <div class="button-row">
+          <button id="start-camera" type="button">カメラ開始</button>
+          <button id="reset-pose" type="button">姿勢リセット</button>
+        </div>
+
+        <dl class="status-grid">
+          <div>
+            <dt>Detector</dt>
+            <dd id="detector-status">idle</dd>
+          </div>
+          <div>
+            <dt>Camera</dt>
+            <dd id="camera-status">idle</dd>
+          </div>
+          <div>
+            <dt>Face</dt>
+            <dd id="face-status">not detected</dd>
+          </div>
+        </dl>
+
+        <div class="meter-grid">
+          <label>
+            <span>Yaw</span>
+            <output id="yaw-value">0.00</output>
+          </label>
+          <label>
+            <span>Pitch</span>
+            <output id="pitch-value">0.00</output>
+          </label>
+          <label>
+            <span>Roll</span>
+            <output id="roll-value">0.00</output>
+          </label>
+          <label>
+            <span>Blink L/R</span>
+            <output id="blink-value">0.00 / 0.00</output>
+          </label>
+          <label>
+            <span>Mouth</span>
+            <output id="mouth-value">0.00</output>
+          </label>
+        </div>
+      </aside>
+    </main>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>

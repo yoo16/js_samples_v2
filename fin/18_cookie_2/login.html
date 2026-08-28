@@ -54,8 +54,6 @@
                             <span id="cookie-status"
                                 class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">未確認</span>
                         </p>
-                        <p class="mt-1 text-xs text-slate-400">「Cookie取得」やログイン操作のたびに、実際に
-                            document.cookie から sid が見えるか判定します（HttpOnly なら「不可視」のはず）</p>
                     </div>
                     <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                         <p class="font-semibold text-slate-900">Session ステータス</p>
@@ -64,7 +62,6 @@
                             <span id="session-status"
                                 class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">未確認</span>
                         </p>
-                        <p class="mt-1 text-xs text-slate-400">Login / Logout / 「/me」のレスポンスに合わせて、サーバー側のセッション状態を表示します</p>
                     </div>
                     <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                         <p class="font-semibold text-slate-900">Fetch credentials 設定</p>
@@ -137,6 +134,8 @@
                             Logout
                         </button>
                     </div>
+
+                    <div id="form-message" class="hidden rounded-lg border p-3 text-sm" role="status"></div>
                 </div>
             </section>
         </div>

@@ -3,6 +3,17 @@
     const $ = (sel) => document.querySelector(sel);
     const out = (v) => { $("#out").textContent = JSON.stringify(v, null, 2); };
     const csrfTokenElement = $("#csrf-token");
+    const formMessage = $("#form-message");
+
+    // 右側フォームにエラー/成功メッセージを表示する
+    function showMessage(type, text) {
+        if (!formMessage) return;
+        formMessage.textContent = text;
+        formMessage.classList.remove("hidden");
+        formMessage.className = type === "success"
+            ? "rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700"
+            : "rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700";
+    }
 
     // CSRFトークンを初期化
     initCsrf();
@@ -51,9 +62,11 @@
 
                 csrfTokenElement.textContent = csrfToken;
                 out(data);
+                showMessage("success", `ログインに成功しました（${email}）`);
             } catch (err) {
                 // 403 Invalid CSRF Token などのエラーもレスポンスとして画面に表示する
                 out({ status: err.status, ...err.data });
+                showMessage("error", err.data?.error || "ログインに失敗しました");
             }
         });
 
@@ -61,7 +74,13 @@
         $("#me").addEventListener("click", async () => {
             // GETリクエストはCookie(sid)を送るだけでよく、CSRFトークンは不要
             const res = await fetch("./api/me.php", { credentials: "same-origin" });
-            out(await res.json());
+            const data = await res.json();
+            out(data);
+            if (res.ok && data.user) {
+                showMessage("success", `/me 取得成功: ${data.user.email}`);
+            } else {
+                showMessage("error", data.error || "未ログインです（401）");
+            }
         });
 
         // POST: api/logout.php
@@ -69,8 +88,10 @@
             try {
                 const data = await postJSON("./api/logout.php", {});
                 out(data);
+                showMessage("success", "ログアウトしました");
             } catch (err) {
                 out({ status: err.status, ...err.data });
+                showMessage("error", err.data?.error || "ログアウトに失敗しました");
             }
         });
 

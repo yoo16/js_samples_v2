@@ -7,6 +7,7 @@
     const credentialsStatus = $("#credentials-status");
     const cookieStatus = $("#cookie-status");
     const sessionStatus = $("#session-status");
+    const formMessage = $("#form-message");
 
     const CREDENTIALS_DESCRIPTION = {
         omit: "omit — Cookie(sid)は送信されません。ログイン後も /me は401になるはずです",
@@ -38,6 +39,16 @@
             cookieStatus.textContent = "不可視（HttpOnly）";
             cookieStatus.className = "inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700";
         }
+    }
+
+    // 右側フォームにエラー/成功メッセージを表示する
+    function showMessage(type, text) {
+        if (!formMessage) return;
+        formMessage.textContent = text;
+        formMessage.classList.remove("hidden");
+        formMessage.className = type === "success"
+            ? "rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700"
+            : "rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700";
     }
 
     // ログイン状態のバッジを更新する
@@ -106,10 +117,12 @@
                 csrfTokenElement.textContent = csrfToken;
                 out(data);
                 updateSessionStatus("authenticated", `ログイン中: ${email}`);
+                showMessage("success", `ログインに成功しました（${email}）`);
             } catch (err) {
                 // 403 Invalid CSRF Token などのエラーもレスポンスとして画面に表示する
                 out({ status: err.status, ...err.data });
                 updateSessionStatus("unauthenticated", "未ログイン（ログイン失敗）");
+                showMessage("error", err.data?.error || "ログインに失敗しました");
             } finally {
                 updateCookieStatus();
             }
@@ -123,8 +136,10 @@
             out(data);
             if (res.ok && data.user) {
                 updateSessionStatus("authenticated", `ログイン中: ${data.user.email}`);
+                showMessage("success", `/me 取得成功: ${data.user.email}`);
             } else {
                 updateSessionStatus("unauthenticated", "未ログイン（401）");
+                showMessage("error", data.error || "未ログインです（401）");
             }
             updateCookieStatus();
         });
@@ -138,8 +153,10 @@
                 // → 次のログインに備えて新しいトークンを取得し直す
                 await initCsrf();
                 updateSessionStatus("unauthenticated", "未ログイン（ログアウト済み）");
+                showMessage("success", "ログアウトしました");
             } catch (err) {
                 out({ status: err.status, ...err.data });
+                showMessage("error", err.data?.error || "ログアウトに失敗しました");
             } finally {
                 updateCookieStatus();
             }
