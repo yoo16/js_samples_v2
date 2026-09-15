@@ -78,6 +78,13 @@
                 <div class="col-span-2"></div>
 
                 <div>
+                    <label for="master-volume" class="flex justify-between text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+                        <span>Master Vol</span><span id="master-volume-value" class="tabular-nums text-slate-300">60%</span>
+                    </label>
+                    <input id="master-volume" type="range" min="0" max="100" value="60" step="1" class="mt-2 w-full accent-amber-400">
+                </div>
+
+                <div>
                     <label for="cutoff" class="flex justify-between text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
                         <span>Cutoff</span><span id="cutoff-value" class="tabular-nums text-slate-300">400 Hz</span>
                     </label>

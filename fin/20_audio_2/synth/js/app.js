@@ -7,6 +7,7 @@ const octaveRangeEl = document.getElementById('octave-range');
 
 const waveformSelect = document.getElementById('waveform');
 const subOscCheckbox = document.getElementById('sub-osc');
+const masterVolumeSlider = document.getElementById('master-volume');
 const cutoffSlider = document.getElementById('cutoff');
 const resonanceSlider = document.getElementById('resonance');
 const envAmountSlider = document.getElementById('env-amount');
@@ -128,8 +129,9 @@ function ensureAudioGraph() {
 
     // 全体音量
     masterGainNode = audioContext.createGain();
-    masterGainNode.gain.value = 0.6;
+    masterGainNode.gain.value = Number(masterVolumeSlider.value) / 100;
 
+    // TODO: ノードを接続する順序を確認: フィルター → アンプ → マスター → 出力
     filterNode.connect(ampGainNode);
     ampGainNode.connect(masterGainNode);
     masterGainNode.connect(audioContext.destination);
@@ -316,7 +318,12 @@ subOscCheckbox.addEventListener('change', () => {
     if (subOscGain) subOscGain.gain.value = subOscCheckbox.checked ? 0.5 : 0;
 });
 
+masterVolumeSlider.addEventListener('input', () => {
+    if (masterGainNode) masterGainNode.gain.value = Number(masterVolumeSlider.value) / 100;
+});
+
 const sliderDisplays = [
+    { slider: masterVolumeSlider, output: document.getElementById('master-volume-value'), unit: '%' },
     { slider: cutoffSlider, output: document.getElementById('cutoff-value'), unit: ' Hz' },
     { slider: resonanceSlider, output: document.getElementById('resonance-value'), unit: '' },
     { slider: envAmountSlider, output: document.getElementById('env-amount-value'), unit: ' Hz' },

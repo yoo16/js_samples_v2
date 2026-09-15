@@ -7,6 +7,7 @@ const octaveRangeEl = document.getElementById('octave-range');
 
 const waveformSelect = document.getElementById('waveform');
 const subOscCheckbox = document.getElementById('sub-osc');
+const masterVolumeSlider = document.getElementById('master-volume');
 const cutoffSlider = document.getElementById('cutoff');
 const resonanceSlider = document.getElementById('resonance');
 const envAmountSlider = document.getElementById('env-amount');
@@ -47,7 +48,9 @@ let octaveShift = 0;
  * @param {number} midi MIDIノート番号
  */
 function midiToFrequency(midi) {
-    return 440 * (2 ** ((midi - 69) / 12));
+    // TODO: 正しい周波数計算を実装する
+    return 440
+    // return 440 * (2 ** ((midi - 69) / 12));
 }
 
 /**
@@ -61,11 +64,12 @@ function midiToNoteName(midi) {
 }
 
 function updateOctaveDisplay() {
-    const lowest = WHITE_NOTES[0] + octaveShift * 12;
-    const highest = WHITE_NOTES[WHITE_NOTES.length - 1] + octaveShift * 12;
-    octaveRangeEl.textContent = `${midiToNoteName(lowest)} – ${midiToNoteName(highest)}`;
-    octaveDownBtn.disabled = octaveShift <= OCTAVE_SHIFT_MIN;
-    octaveUpBtn.disabled = octaveShift >= OCTAVE_SHIFT_MAX;
+    // TODO: オクターブを更新
+    // const lowest = WHITE_NOTES[0] + octaveShift * 12;
+    // const highest = WHITE_NOTES[WHITE_NOTES.length - 1] + octaveShift * 12;
+    // octaveRangeEl.textContent = `${midiToNoteName(lowest)} – ${midiToNoteName(highest)}`;
+    // octaveDownBtn.disabled = octaveShift <= OCTAVE_SHIFT_MIN;
+    // octaveUpBtn.disabled = octaveShift >= OCTAVE_SHIFT_MAX;
 }
 
 function shiftOctave(delta) {
@@ -116,6 +120,7 @@ function setStatus(state) {
 function ensureAudioGraph() {
     if (audioContext) return;
 
+    // オーディオ
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
     // レゾナンス付きローパスフィルター（アナログシンセの「ワウ」の要）
@@ -128,11 +133,13 @@ function ensureAudioGraph() {
 
     // 全体音量
     masterGainNode = audioContext.createGain();
-    masterGainNode.gain.value = 0.6;
+    // TODO: マスターボリュームをスライダーで調整できるようにする
+    masterGainNode.gain.value = Number(masterVolumeSlider.value) / 100;
 
-    filterNode.connect(ampGainNode);
-    ampGainNode.connect(masterGainNode);
-    masterGainNode.connect(audioContext.destination);
+    // TODO: ノードを接続する順序を確認: フィルター → アンプ → マスター → 出力
+    // filterNode.connect(ampGainNode);
+    // ampGainNode.connect(masterGainNode);
+    // masterGainNode.connect(audioContext.destination);
 
     // メインオシレーター（常時発振させておき、周波数だけ動かしてポルタメントを実現）
     mainOscillator = audioContext.createOscillator();
@@ -165,9 +172,13 @@ function noteOn(midi) {
         audioContext.resume();
     }
 
+    // 現在の時間を取得
     const now = audioContext.currentTime;
+    // 指定したMIDIノートの周波数を計算
     const freq = midiToFrequency(midi);
+    // グライド時間を取得
     const glideSeconds = Number(glideSlider.value) / 1000;
+    // 初回の発音かどうかを判定
     const isFirstNote = !isSoundOn;
 
     // ポルタメント（グライド）: 直前の音から滑らかに周波数を変化させる
@@ -309,11 +320,17 @@ window.addEventListener('keyup', (event) => {
 
 // パラメーター変更のハンドリング
 waveformSelect.addEventListener('change', () => {
-    if (mainOscillator) mainOscillator.type = waveformSelect.value;
+    // TODO: オシレーターの波形を変更
+    // if (mainOscillator) mainOscillator.type = waveformSelect.value;
 });
 
 subOscCheckbox.addEventListener('change', () => {
     if (subOscGain) subOscGain.gain.value = subOscCheckbox.checked ? 0.5 : 0;
+});
+
+masterVolumeSlider.addEventListener('input', () => {
+    // TODO: マスターボリュームを反映
+    // if (masterGainNode) masterGainNode.gain.value = Number(masterVolumeSlider.value) / 100;
 });
 
 const sliderDisplays = [
