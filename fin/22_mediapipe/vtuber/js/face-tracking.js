@@ -1,8 +1,10 @@
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 
-const MEDIAPIPE_WASM_BASE = new URL('../vendor/@mediapipe/tasks-vision/wasm', import.meta.url).toString();
-const MEDIAPIPE_MODEL_ASSET =
-  'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+const MEDIAPIPE_WASM_BASE = new URL('../../vendor/@mediapipe/tasks-vision/wasm', import.meta.url).toString();
+const MEDIAPIPE_MODEL_ASSET = new URL(
+  '../../vendor/@mediapipe/models/face_landmarker.task',
+  import.meta.url,
+).toString();
 
 const LANDMARK_INDEX = {
   leftEyeOuter: 33,

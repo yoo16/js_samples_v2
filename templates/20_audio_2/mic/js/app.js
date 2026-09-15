@@ -59,6 +59,7 @@ function setStatus(state) {
     statusDot.classList.add('bg-slate-500');
 }
 
+// 経過時間を mm:ss 形式にフォーマットする関数
 function formatElapsed(ms) {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -66,6 +67,7 @@ function formatElapsed(ms) {
     return `${minutes}:${seconds}`;
 }
 
+// 録音ボタンの表示を更新する関数
 function updateRecordButton() {
     recordToggleBtn.textContent = isRecording ? 'Stop' : 'Record';
     recordToggleBtn.classList.toggle('bg-rose-500', !isRecording);
@@ -81,20 +83,26 @@ function updateRecordButton() {
  */
 async function startRecording() {
     try {
-        // メディアストリーム取得
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // オーディオコンテキストの作成
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        // MediaStream からオーディオソースノードを生成
-        const source = audioContext.createMediaStreamSource(stream);
+        // TODO: メディアストリーム取得
+        const stream = null;
+        // const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        // TODO: オーディオコンテキストの作成: new AudioContext() または window.webkitAudioContext()
+        audioContext = null;
+
+        // MediaStream からオーディオソースノードを生成: createMediaStreamSource()
+        const source = null;
+
         // AnalyserNode を作成して FFT サイズを設定
         analyser = audioContext.createAnalyser();
+
         // FFT サイズを 1024 に設定（2 の累乗である必要がある）
         analyser.fftSize = 1024;
         // スムージング係数を設定（0.0 から 1.0 の範囲で、値が大きいほど平滑化される）
         analyser.smoothingTimeConstant = 0.78;
-        // オーディオソースをノード： AnalyserNode に接続
-        source.connect(analyser);
+        // TODO: オーディオソースを AnalyserNode に接続
+        // source.connect(analyser);
+
         // ストリームオブジェクトを保持
         microphoneStream = stream;
 
@@ -107,18 +115,28 @@ async function startRecording() {
 
         // MediaRecorder で録音データを収集
         recordedChunks = [];
+
+        // MediaRecorder : 録音データを収集するためのオブジェクトを生成
         mediaRecorder = new MediaRecorder(stream);
+        // TODO: MediaRecorder のイベントリスナーを設定
         mediaRecorder.addEventListener('dataavailable', (event) => {
             if (event.data.size > 0) {
-                recordedChunks.push(event.data);
+                // TODO: 録音データを配列に追加: event.data
             }
         });
+        // 録音停止のイベントリスナーを設定
         mediaRecorder.addEventListener('stop', handleRecordingStop);
+        // 録音開始のイベントリスナー設定
         mediaRecorder.start();
 
+        // レコード開始
         isRecording = true;
+
+        // 録音開始時刻を記録
         recordingStartedAt = Date.now();
+        // タイマーを開始(200msごとに更新)
         timerIntervalId = setInterval(() => {
+            // 録音中の経過時間を更新
             timerEl.textContent = formatElapsed(Date.now() - recordingStartedAt);
         }, 200);
 
@@ -134,14 +152,18 @@ async function startRecording() {
     }
 }
 
+// 録音停止処理
 function stopRecording() {
     mediaRecorder.stop();
+    // MediaRecorder(録音) が stop イベントを発火させるのを待つ
     microphoneStream?.getAudioTracks().forEach((track) => track.stop());
 
     if (animationId) {
+        // アニメーションを停止
         cancelAnimationFrame(animationId);
         animationId = null;
     }
+    // タイマーを停止
     clearInterval(timerIntervalId);
 
     isRecording = false;
@@ -209,6 +231,7 @@ function drawWaveform(audioBuffer) {
     ctx.stroke();
 }
 
+// オーディオレベルを Canvas に描画する関数
 function renderLevel(level) {
     // オーディオレベルを 0-100 の範囲に丸める
     const roundedLevel = Math.round(level);
@@ -266,10 +289,11 @@ function updateInputLevel() {
         const normalized = (dataArray[i] / 128) - 1;
         sumSquares += normalized * normalized;
     }
-    // RMS値: ルート平均二乗値を計算して音量レベルを求める: Math.sqrt(sumSquares / dataArray.length)
-    const rms = Math.sqrt(sumSquares / dataArray.length);
+    // TODO: RMS値: ルート平均二乗値を計算して音量レベルを求める: Math.sqrt(sumSquares / dataArray.length)
+    const rms = 0;
     // rms を 0-100 のスケールに変換（調整が必要な場合は multiplier を変更）
     const level = Math.min(100, rms * 260);
+
     // スムージングを適用してレベルを更新
     smoothedLevel = smoothedLevel * 0.72 + level * 0.28;
     // オーディオレベルを表示

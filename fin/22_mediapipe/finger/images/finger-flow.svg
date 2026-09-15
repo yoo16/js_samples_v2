@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 260" font-family="'Hiragino Sans', 'Yu Gothic', sans-serif">
+  <defs>
+    <marker id="arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"></path>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="260" fill="#ffffff"></rect>
+
+  <!-- Banner -->
+  <rect x="20" y="16" width="940" height="40" rx="8" fill="#f1f5f9" stroke="#cbd5e1"></rect>
+  <text x="490" y="41" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">
+    finger/index.html の処理の流れ
+  </text>
+
+  <!-- Step 1 -->
+  <circle cx="120" cy="100" r="14" fill="#0284c7"></circle>
+  <text x="120" y="105" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <rect x="40" y="130" width="160" height="90" rx="10" fill="#ffffff" stroke="#cbd5e1"></rect>
+  <text x="120" y="160" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">カメラ映像取得</text>
+  <text x="120" y="182" text-anchor="middle" font-size="11" fill="#475569">getUserMedia()</text>
+  <text x="120" y="200" text-anchor="middle" font-size="11" fill="#475569">左右反転して表示</text>
+
+  <line x1="200" y1="175" x2="248" y2="175" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow3)"></line>
+
+  <!-- Step 2 -->
+  <circle cx="330" cy="100" r="14" fill="#0284c7"></circle>
+  <text x="330" y="105" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+  <rect x="250" y="130" width="160" height="90" rx="10" fill="#ffffff" stroke="#cbd5e1"></rect>
+  <text x="330" y="160" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">HandLandmarker</text>
+  <text x="330" y="182" text-anchor="middle" font-size="11" fill="#475569">detectForVideo()</text>
+  <text x="330" y="200" text-anchor="middle" font-size="11" fill="#475569">手ごとに21点を推定</text>
+
+  <line x1="410" y1="175" x2="458" y2="175" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow3)"></line>
+
+  <!-- Step 3 -->
+  <circle cx="540" cy="100" r="14" fill="#0284c7"></circle>
+  <text x="540" y="105" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">3</text>
+  <rect x="460" y="130" width="160" height="90" rx="10" fill="#ffffff" stroke="#cbd5e1"></rect>
+  <text x="540" y="152" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">指の伸展を判定</text>
+  <text x="540" y="174" text-anchor="middle" font-size="11" fill="#475569">detectExtendedFingers()</text>
+  <text x="540" y="192" text-anchor="middle" font-size="11" fill="#475569">TIPとPIPの距離を</text>
+  <text x="540" y="208" text-anchor="middle" font-size="11" fill="#475569">手首からの距離で比較</text>
+
+  <line x1="620" y1="175" x2="668" y2="175" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow3)"></line>
+
+  <!-- Step 4 -->
+  <circle cx="750" cy="100" r="14" fill="#0284c7"></circle>
+  <text x="750" y="105" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">4</text>
+  <rect x="670" y="130" width="160" height="90" rx="10" fill="#ffffff" stroke="#cbd5e1"></rect>
+  <text x="750" y="160" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">canvasに描画</text>
+  <text x="750" y="182" text-anchor="middle" font-size="11" fill="#475569">drawHands()</text>
+  <text x="750" y="200" text-anchor="middle" font-size="11" fill="#475569">骨格・関節・番号</text>
+
+  <line x1="830" y1="175" x2="878" y2="175" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow3)"></line>
+
+  <!-- Step 5 -->
+  <circle cx="920" cy="100" r="14" fill="#0284c7"></circle>
+  <text x="920" y="105" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">5</text>
+  <rect x="880" y="130" width="80" height="90" rx="10" fill="#ffffff" stroke="#cbd5e1"></rect>
+  <text x="920" y="158" text-anchor="middle" font-size="12" font-weight="700" fill="#0f172a">状態を</text>
+  <text x="920" y="176" text-anchor="middle" font-size="12" font-weight="700" fill="#0f172a">更新</text>
+  <text x="920" y="196" text-anchor="middle" font-size="10" fill="#475569">updateStatus()</text>
+  <text x="920" y="210" text-anchor="middle" font-size="10" fill="#475569">手の数・fps</text>
+
+  <!-- Loop back -->
+  <path d="M 920 130 C 920 55, 330 55, 330 88" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow3)"></path>
+  <text x="625" y="55" text-anchor="middle" font-size="11" fill="#64748b">毎フレーム繰り返す（requestAnimationFrame）</text>
+
+  <text x="20" y="248" font-size="11" fill="#64748b">
+    ※ 2〜5 は render() の中で毎フレーム実行され、検出した手ごとに骨格描画と指の判定を行います。
+  </text>
+</svg>
