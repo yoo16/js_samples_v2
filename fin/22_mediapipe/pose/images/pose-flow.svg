@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 260" font-family="'Hiragino Sans', 'Yu Gothic', sans-serif">
+  <defs>
+    <marker id="arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"></path>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="260" fill="#ffffff"></rect>
+
+  <!-- Banner -->
+  <rect x="20" y="16" width="940" height="40" rx="8" fill="#f1f5f9" stroke="#cbd5e1"></rect>
+  <text x="490" y="41" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">
+    pose/index.html の処理の流れ
+  </text>
+
+  <!-- Step 1 -->
+  <circle cx="105" cy="100" r="14" fill="#0284c7"></circle>
+  <text x="105" y="105" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <rect x="30" y="130" width="150" height="90" rx="10" fill="#ffffff" stroke="#cbd5e1"></rect>
+  <text x="105" y="160" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">カメラ映像取得</text>
+  <text x="105" y="182" text-anchor="middle" font-size="11" fill="#475569">getUserMedia()</text>
+  <text x="105" y="200" text-anchor="middle" font-size="11" fill="#475569">左右反転して表示</text>
+
+  <line x1="180" y1="175" x2="222" y2="175" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow3)"></line>
+
+  <!-- Step 2 -->
+  <circle cx="300" cy="100" r="14" fill="#0284c7"></circle>
+  <text x="300" y="105" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+  <rect x="225" y="130" width="150" height="90" rx="10" fill="#ffffff" stroke="#cbd5e1"></rect>
+  <text x="300" y="160" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">PoseLandmarker</text>
+  <text x="300" y="182" text-anchor="middle" font-size="11" fill="#475569">detectForVideo()</text>
+  <text x="300" y="200" text-anchor="middle" font-size="11" fill="#475569">全身33点を推定</text>
+
+  <line x1="375" y1="175" x2="417" y2="175" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow3)"></line>
+
+  <!-- Step 3 -->
+  <circle cx="495" cy="100" r="14" fill="#0284c7"></circle>
+  <text x="495" y="105" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">3</text>
+  <rect x="420" y="130" width="150" height="90" rx="10" fill="#ffffff" stroke="#cbd5e1"></rect>
+  <text x="495" y="152" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">関節角度を計算</text>
+  <text x="495" y="174" text-anchor="middle" font-size="11" fill="#475569">computeJointAngles()</text>
+  <text x="495" y="192" text-anchor="middle" font-size="11" fill="#475569">ひじ・肩・体幹・ひざ</text>
+  <text x="495" y="208" text-anchor="middle" font-size="11" fill="#475569">の4種類を算出</text>
+
+  <line x1="570" y1="175" x2="612" y2="175" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow3)"></line>
+
+  <!-- Step 4 -->
+  <circle cx="690" cy="100" r="14" fill="#0284c7"></circle>
+  <text x="690" y="105" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">4</text>
+  <rect x="615" y="130" width="150" height="90" rx="10" fill="#ffffff" stroke="#cbd5e1"></rect>
+  <text x="690" y="160" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">お手本と比較</text>
+  <text x="690" y="182" text-anchor="middle" font-size="11" fill="#475569">comparePose()</text>
+  <text x="690" y="200" text-anchor="middle" font-size="11" fill="#475569">角度の差から採点</text>
+
+  <line x1="765" y1="175" x2="807" y2="175" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow3)"></line>
+
+  <!-- Step 5 -->
+  <circle cx="885" cy="100" r="14" fill="#0284c7"></circle>
+  <text x="885" y="105" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">5</text>
+  <rect x="810" y="130" width="150" height="90" rx="10" fill="#ffffff" stroke="#cbd5e1"></rect>
+  <text x="885" y="160" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">結果を表示</text>
+  <text x="885" y="182" text-anchor="middle" font-size="11" fill="#475569">骨格の色とスコア</text>
+  <text x="885" y="200" text-anchor="middle" font-size="11" fill="#475569">緑・黄・赤で判定</text>
+</svg>
