@@ -21,6 +21,15 @@ import {
   prepareVRMForFaceStage,
   resetVRMPose,
 } from './vrm.js';
+// 肩・ひじをPoseで動かす追加機能（別ファイル）。不要なら以下のimportと
+// 関連する呼び出し箇所を削除すれば、元の顔トラッキングのみの状態に戻る。
+import {
+  DEFAULT_ARM_FRAME,
+  createPoseDetector,
+  getSmoothedArmFrame,
+  resetTwistCalibration,
+} from './pose-tracking.js';
+import { applyArmTrackingToVRM } from './vrm-arm-pose.js';
 
 const elements = {
   canvas: document.querySelector('#avatar-canvas'),
@@ -36,12 +45,19 @@ const elements = {
   rollValue: document.querySelector('#roll-value'),
   blinkValue: document.querySelector('#blink-value'),
   mouthValue: document.querySelector('#mouth-value'),
+  armToggle: document.querySelector('#arm-tracking-toggle'),
+  armStatus: document.querySelector('#arm-status'),
+  shoulderValue: document.querySelector('#shoulder-value'),
+  twistValue: document.querySelector('#twist-value'),
 };
 
 const state = {
   detector: null,
+  poseDetector: null,
   currentVrm: null,
   frame: structuredClone(DEFAULT_FRAME),
+  armFrame: structuredClone(DEFAULT_ARM_FRAME),
+  armTrackingEnabled: false,
   lastDebugUpdate: 0,
 };
 
@@ -56,9 +72,34 @@ async function boot() {
   elements.startCamera.addEventListener('click', startCamera);
   elements.vrmFile.addEventListener('change', handleVrmFile);
   elements.resetPose.addEventListener('click', resetPose);
+  elements.armToggle?.addEventListener('change', handleArmToggle);
 
   requestAnimationFrame(renderLoop);
   await initializeFaceDetector();
+}
+
+async function handleArmToggle(event) {
+  state.armTrackingEnabled = event.target.checked;
+
+  if (state.armTrackingEnabled && !state.poseDetector) {
+    try {
+      setText(elements.armStatus, 'loading');
+      state.poseDetector = await createPoseDetector();
+      setText(elements.armStatus, 'ready');
+    } catch (error) {
+      setText(elements.armStatus, `error: ${toMessage(error)}`);
+      state.armTrackingEnabled = false;
+      elements.armToggle.checked = false;
+    }
+  }
+
+  if (state.armTrackingEnabled) {
+    // 正面を向いた状態をオンにするタイミングを基準として、捻りをキャリブレーションする。
+    resetTwistCalibration();
+  } else {
+    state.armFrame = structuredClone(DEFAULT_ARM_FRAME);
+    setText(elements.armStatus, 'off');
+  }
 }
 
 async function initializeFaceDetector() {
@@ -112,8 +153,20 @@ function renderLoop(now) {
     currentFrame: state.frame,
   });
 
+  if (state.armTrackingEnabled) {
+    state.armFrame = getSmoothedArmFrame({
+      detector: state.poseDetector,
+      video: elements.video,
+      now,
+      currentFrame: state.armFrame,
+    });
+  }
+
   if (state.currentVrm) {
     applyTrackingToVRM(state.currentVrm, state.frame);
+    if (state.armTrackingEnabled) {
+      applyArmTrackingToVRM(state.currentVrm, state.armFrame);
+    }
     state.currentVrm.update(clock.getDelta());
   }
 
@@ -123,6 +176,10 @@ function renderLoop(now) {
 
 function resetPose() {
   state.frame = structuredClone(DEFAULT_FRAME);
+  state.armFrame = structuredClone(DEFAULT_ARM_FRAME);
+  if (state.armTrackingEnabled) {
+    resetTwistCalibration();
+  }
   if (!state.currentVrm) {
     return;
   }
@@ -179,6 +236,17 @@ function updateDebugPanel(now) {
   setText(elements.rollValue, state.frame.head.roll.toFixed(2));
   setText(elements.blinkValue, `${state.frame.eyes.leftBlink.toFixed(2)} / ${state.frame.eyes.rightBlink.toFixed(2)}`);
   setText(elements.mouthValue, state.frame.mouth.open.toFixed(2));
+
+  if (elements.shoulderValue) {
+    setText(
+      elements.shoulderValue,
+      `${state.armFrame.left.shoulderDeg.toFixed(0)}° / ${state.armFrame.right.shoulderDeg.toFixed(0)}°`,
+    );
+  }
+
+  if (elements.twistValue) {
+    setText(elements.twistValue, `${((state.armFrame.twistRad * 180) / Math.PI).toFixed(0)}°`);
+  }
 }
 
 function setText(element, text) {

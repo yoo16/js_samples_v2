@@ -39,6 +39,12 @@
           <button id="reset-pose" type="button">姿勢リセット</button>
         </div>
 
+        <!-- 肩・上半身の捻りをPoseで動かす追加機能（別ファイル: pose-tracking.js / vrm-arm-pose.js） -->
+        <label class="file-control">
+          <span>肩・上半身の捻りをPoseで動かす</span>
+          <input id="arm-tracking-toggle" type="checkbox" />
+        </label>
+
         <dl class="status-grid">
           <div>
             <dt>Detector</dt>
@@ -51,6 +57,10 @@
           <div>
             <dt>Face</dt>
             <dd id="face-status">not detected</dd>
+          </div>
+          <div>
+            <dt>Arm</dt>
+            <dd id="arm-status">off</dd>
           </div>
         </dl>
 
@@ -74,6 +84,14 @@
           <label>
             <span>Mouth</span>
             <output id="mouth-value">0.00</output>
+          </label>
+          <label>
+            <span>Shoulder L/R</span>
+            <output id="shoulder-value">0° / 0°</output>
+          </label>
+          <label>
+            <span>Twist</span>
+            <output id="twist-value">0°</output>
           </label>
         </div>
       </aside>
