@@ -1,3 +1,4 @@
+// hand-landmarker.js: 手のランドマーク検出と描画のメインスクリプト
 import {
     createHandLandmarker,
     estimateHands,
@@ -34,6 +35,7 @@ let fps = 0;
 let lastTime = performance.now();
 
 async function setupCamera() {
+    // Webカメラの映像を取得して video 要素に設定
     const stream = await navigator.mediaDevices.getUserMedia({
         video: {
             width: { ideal: REQUEST_WIDTH },
@@ -43,13 +45,18 @@ async function setupCamera() {
         },
         audio: false,
     });
+    // video 要素に Webカメラの映像を設定
     videoEl.srcObject = stream;
+    // video 要素の再生
     await videoEl.play();
 }
 
+// 手の描画処理
 function drawHands(hands) {
+    // キャンバスをクリア
     ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
 
+    // ビデオの幅と高さを取得
     const srcWidth = videoEl.videoWidth || REQUEST_WIDTH;
     const srcHeight = videoEl.videoHeight || REQUEST_HEIGHT;
     const scaleX = canvasEl.width / srcWidth;
@@ -59,47 +66,50 @@ function drawHands(hands) {
     ctx.font = '11px monospace';
     ctx.textBaseline = 'middle';
 
+    // 各手の描画処理を開始
     hands.forEach((hand, handIndex) => {
         const color = HAND_COLORS[handIndex % HAND_COLORS.length];
+        // 手のランドマークをキャンバス座標に変換
         const pts = hand.keypoints.map(toCanvas);
 
-        // 骨格
-        if (showSkeleton) {
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            HAND_CONNECTIONS.forEach(([a, b]) => {
-                ctx.moveTo(pts[a].x, pts[a].y);
-                ctx.lineTo(pts[b].x, pts[b].y);
-            });
-            ctx.stroke();
-        }
+        // TODO: 骨格の描画
+        // if (showSkeleton) {
+        //     ctx.strokeStyle = color;
+        //     ctx.lineWidth = 3;
+        //     ctx.beginPath();
+        //     HAND_CONNECTIONS.forEach(([a, b]) => {
+        //         ctx.moveTo(pts[a].x, pts[a].y);
+        //         ctx.lineTo(pts[b].x, pts[b].y);
+        //     });
+        //     ctx.stroke();
+        // }
 
-        // 関節
-        pts.forEach((p, index) => {
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, index === 0 ? 6 : 4, 0, 2 * Math.PI);
-            ctx.fillStyle = '#fff';
-            ctx.fill();
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = color;
-            ctx.stroke();
+        // TODO: 関節の描画
+        // pts.forEach((p, index) => {
+        //     ctx.beginPath();
+        //     ctx.arc(p.x, p.y, index === 0 ? 6 : 4, 0, 2 * Math.PI);
+        //     ctx.fillStyle = '#fff';
+        //     ctx.fill();
+        //     ctx.lineWidth = 2;
+        //     ctx.strokeStyle = color;
+        //     ctx.stroke();
 
-            if (showIndices) {
-                const label = String(index);
-                ctx.fillStyle = 'rgba(15,23,42,0.75)';
-                const w = ctx.measureText(label).width + 6;
-                ctx.fillRect(p.x + 6, p.y - 8, w, 16);
-                ctx.fillStyle = '#fff';
-                ctx.fillText(label, p.x + 9, p.y);
-            }
-        });
+        //     if (showIndices) {
+        //         const label = String(index);
+        //         ctx.fillStyle = 'rgba(15,23,42,0.75)';
+        //         const w = ctx.measureText(label).width + 6;
+        //         ctx.fillRect(p.x + 6, p.y - 8, w, 16);
+        //         ctx.fillStyle = '#fff';
+        //         ctx.fillText(label, p.x + 9, p.y);
+        //     }
+        // });
     });
 }
 
+// 手の詳細情報
 function renderHandDetails(hands) {
     handDetailsEl.replaceChildren();
-
+    // 手の詳細情報を表示するためのカードを生成
     hands.forEach((hand, handIndex) => {
         const color = HAND_COLORS[handIndex % HAND_COLORS.length];
         const fingers = detectExtendedFingers(hand.keypoints);
@@ -140,6 +150,7 @@ function updateStatus(hands) {
     liveDotEl.className = `h-2 w-2 rounded-full ${detected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`;
     liveLabelEl.textContent = detected ? `${hands.length} 手を検出` : '手を探しています';
 
+    // 総検出指の数を計算
     const totalFingers = hands.reduce(
         (sum, hand) => sum + Object.values(detectExtendedFingers(hand.keypoints)).filter(Boolean).length,
         0,
@@ -158,10 +169,17 @@ function tickFps() {
 
 function render() {
     tickFps();
-    const hands = estimateHands(landmarker, videoEl, performance.now());
+    // タイムスタンプ
+    const timestamp = performance.now();
+    // TODO: 手のランドマークを推定: estimateHands(): 引数: landmarker, videoEl, timestamp
+    const hands = {};
+    // 手のランドマークの描画
     drawHands(hands);
+    // 手の詳細情報の描画
     renderHandDetails(hands);
+    // ステータスの更新
     updateStatus(hands);
+    // 次のフレームを描画
     requestAnimationFrame(render);
 }
 

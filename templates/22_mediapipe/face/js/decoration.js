@@ -154,7 +154,9 @@ function loadImages() {
         }
     };
     keys.forEach(name => {
+        // 画像オブジェクト作成
         const img = new Image();
+        // 画像の読み込み完了時の処理を設定
         img.onload = () => {
             decoImageRatios[name] = img.width / img.height;
             done();
@@ -163,7 +165,8 @@ function loadImages() {
             console.warn(`スタンプ画像が見つかりません: images/${name}.png`);
             done();
         };
-        img.src = `images/${name}.png`;
+        // TODO: 画像のパスを設定
+        // img.src = `images/${name}.png`;
     });
 }
 
@@ -212,10 +215,10 @@ function updatemesh() {
         return;
     }
 
-    // 顔の傾き
+    // 顔の傾き処理
     const quaternion = calculateNormalVector();
-    // スタンプの回転
-    mesh.quaternion.copy(quaternion);
+    // TODO: スタンプの回転: three.js のクォータニオンを使用: mesh.quaternion.copy(quaternion)
+
     // スタンプの位置
     const settings = faceImages[currentFaceImage];
     // スタンプの位置調整
@@ -223,29 +226,31 @@ function updatemesh() {
 
     // 鼻の位置
     const position = landmark[settings.point];
-    // 顔の中心位置を計算
-    const faceCenter = new THREE.Vector3(
-        position.x + positionX + settings.dx,
-        position.y + positionY + settings.dy,
-        position.z - zOffset,
-    );
+    // TODO: 顔の中心位置を計算
+    // const faceCenter = new THREE.Vector3(
+    //     position.x + positionX + settings.dx,
+    //     position.y + positionY + settings.dy,
+    //     position.z - zOffset,
+    // );
 
     // 鼻のY座標の中間点を計算
-    const leftNose = landmark[279];
-    const rightNose = landmark[49];
-    const noseYMidpoint = (leftNose.y + rightNose.y) / 2;
+    // TODO: 左鼻の座標: landmark[279]
+    const leftNose = { x: 0, y: 0, z: 0 };
+    // TODO: 右鼻の座標: landmark[49]
+    const rightNose = { x: 0, y: 0, z: 0 };
+    // TODO: 左右の鼻のY座標の中間点を計算
+    const noseYMidpoint = 0;
 
-    // 鼻のY座標の中間点に位置を調整
-    faceCenter.y = noseYMidpoint + settings.dy;
+    // TODO: 鼻のY座標の中間点に位置を調整
+    // faceCenter.y = noseYMidpoint + settings.dy;
 
-    // デコレーションを適切に配置
-    mesh.position.copy(faceCenter);
+    // TODO: デコレーションを適切に配置
+    // mesh.position.copy(faceCenter);
 }
 
 
 /**
  * 顔の向き（法線ベクトル）を計算し、three.jsのクォータニオンに変換
- * @return {THREE.Quaternion} 顔の向きを表すクォータニオン
  */
 function calculateNormalVector() {
     if (!results || results.length === 0) {
@@ -254,11 +259,11 @@ function calculateNormalVector() {
 
     // ランドマーク取得
     const landmark = fixLandmarkValue(results[0].keypoints);
-    // 鼻の先端のキーポイント
+    // 鼻の先端のキーポイント: landmark[1]
     const noseTip = landmark[1];
-    // 鼻の左端のキーポイント
+    // 鼻の左端のキーポイント: landmark[279]
     const leftNose = landmark[279];
-    // 鼻の右端のキーポイント
+    // 鼻の右端のキーポイント: landmark[49]
     const rightNose = landmark[49];
 
     // 鼻の中央を計算（x, y, z）
@@ -268,22 +273,19 @@ function calculateNormalVector() {
         z: (leftNose.z + rightNose.z) / 2,
     };
 
-    //  顔の向き（法線ベクトル）を計算
+    // 顔の向き（法線ベクトル）を計算
     faceNormalVector = new THREE.Vector3(noseTip.x, noseTip.y, noseTip.z)
         .sub(new THREE.Vector3(midpoint.x, midpoint.y, midpoint.z))
         .normalize();
 
-    // 法線ベクトルとZ軸の単位ベクトルを使用してクォータニオンを作成
-    const quaternion = new THREE.Quaternion();
-    quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), faceNormalVector);
-    return quaternion;
+    // TODO: クォータニオンを作成
+    // const quaternion = new THREE.Quaternion();
+    // quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), faceNormalVector);
+    // return quaternion;
 }
 
 /**
  * Webカメラを有効化する
- * - getUserMediaを使用してWebカメラの映像を取得
- * - video要素に映像を設定
- * - video要素を再生
  * @return {Promise<HTMLVideoElement>} streamの取得が完了したpromise
  */
 async function setupCamera() {
@@ -312,6 +314,7 @@ async function setupCamera() {
 
 // 顔を検知
 function detectFace() {
+    // 顔を検知して結果を更新
     results = estimateFaces(detector, videoEl, performance.now());
 }
 
@@ -331,10 +334,13 @@ function fixLandmarkValue(data) {
 }
 
 function render() {
+    // 顔の向きを計算
     detectFace();
+    // 顔の向きに基づいてメッシュを更新する処理を追加
     updatemesh();
-
+    // シーンをレンダリング
     renderer.render(scene, camera);
+    // 次のフレームの描画をリクエスト
     requestAnimationFrame(render);
 }
 
