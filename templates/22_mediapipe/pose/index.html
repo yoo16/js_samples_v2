@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediaPipe - Pose Landmark Detection</title>
+  <!-- Tailwind CSS（vendor/ 内の standalone ビルドを利用）-->
+  <script src="../vendor/tailwindcss/tailwindcss.js"></script>
+  <!-- MediaPipe Tasks Vision（vendor/ 内のファイルを利用） -->
+  <script type="importmap">
+    {
+      "imports": {
+        "@mediapipe/tasks-vision": "../vendor/@mediapipe/tasks-vision/vision_bundle.mjs"
+      }
+    }
+  </script>
+</head>
+
+<body class="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 text-slate-800">
+  <main class="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10">
+
+    <header class="text-center">
+      <p class="text-sm font-semibold uppercase tracking-widest text-indigo-500">MediaPipe Tasks Vision</p>
+      <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">ヨガ・ストレッチ お手本トレース</h1>
+    </header>
+
+    <!-- お手本の指示文（タイトル直下に大きく表示） -->
+    <div class="rounded-2xl bg-indigo-600 px-6 py-5 text-center shadow-lg ring-1 ring-indigo-900/10">
+      <p id="pose-name" class="text-xs font-semibold uppercase tracking-widest text-indigo-200"></p>
+      <p id="pose-description" class="mt-1 text-xl font-bold leading-relaxed text-white sm:text-2xl"></p>
+    </div>
+
+    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+
+      <!-- 左：カメラ映像 -->
+      <section class="flex flex-col gap-4">
+        <figure
+          class="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-slate-900 shadow-xl ring-1 ring-slate-900/10">
+          <video id="video" class="absolute inset-0 h-full w-full -scale-x-100 object-cover" autoplay muted playsinline
+            loop></video>
+          <canvas id="canvas" width="640" height="480"
+            class="pointer-events-none absolute inset-0 h-full w-full -scale-x-100"></canvas>
+          <figcaption
+            class="absolute bottom-3 left-3 flex items-center gap-2 rounded-full bg-slate-900/60 px-3 py-1 text-xs font-medium text-white backdrop-blur">
+            <span id="live-dot" class="h-2 w-2 rounded-full bg-slate-400"></span>
+            <span id="live-label">待機中</span>
+          </figcaption>
+        </figure>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <label class="text-sm text-slate-600" for="pose-select">お手本ポーズ</label>
+          <select id="pose-select"
+            class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"></select>
+          <button id="capture-btn" type="button"
+            class="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-500">
+            今の姿勢をお手本に保存
+          </button>
+        </div>
+      </section>
+
+      <!-- 右：スコア -->
+      <aside class="flex flex-col gap-6">
+
+        <div class="rounded-2xl bg-white/70 p-5 text-center shadow-sm ring-1 ring-slate-900/5 backdrop-blur">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">一致度</h2>
+          <p id="score-overall" class="mt-1 text-5xl font-bold tracking-tight text-slate-900">--</p>
+          <p class="text-xs text-slate-400">%</p>
+        </div>
+
+        <!-- 関節ごとの詳細（動的生成） -->
+        <div id="joint-details" class="flex flex-col gap-3"></div>
+
+        <p class="text-xs text-slate-400">
+          映像は左右反転して表示しています。全身が映る位置まで下がってお試しください。
+        </p>
+      </aside>
+    </div>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

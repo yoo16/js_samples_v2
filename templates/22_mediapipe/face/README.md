@@ -1,31 +1,6 @@
-## MediaPipeとは
+## FaceLandmarkerとは
 
-`MediaPipe` は、Googleが提供する機械学習の推論を手軽に扱えるライブラリです。今回は、その中の `Tasks Vision` という機能を使い、`Web` カメラの映像から顔の特徴点をリアルタイムに検出します。
-
-```javascript
-import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
-```
-
-### Tasks Visionで使える機能
-
-`Tasks Vision` には、`FaceLandmarker` や `HandLandmarker` 以外にも、画像や映像を扱うためのさまざまな機能が用意されています。
-
-| 機能 | 検出する対象 |
-| ---- | ---- |
-| FaceLandmarker | 顔の478個のランドマーク |
-| HandLandmarker | 手ごとの21個の関節点 |
-| PoseLandmarker | 全身の33個の関節点 |
-| ObjectDetector | 画像内の物体とその位置 |
-| ImageSegmenter | 人物や物体の領域（マスク） |
-| GestureRecognizer | 手の形（ジェスチャー） |
-| ImageClassifier | 画像に写っているものの分類 |
-
-> 全身の姿勢を検出する `PoseNet` は、`TensorFlow.js` が提供していた別のライブラリです。`MediaPipe Tasks Vision` では、同じ役割を `PoseLandmarker` が担っています。名前は異なりますが、映像から関節点を推定するという考え方は `FaceLandmarker` や `HandLandmarker` と共通しています。
-
-### FaceLandmarkerの役割
-
-`FaceLandmarker` は、`MediaPipe` が提供する機能のひとつで、顔の映像から `478` 個の特徴点（ランドマーク）の座標を推定します。目、鼻、口、輪郭など、顔のパーツごとの位置が数値としてわかります。
-
+`FaceLandmarker` は、`MediaPipe Tasks Vision` が提供する機能のひとつで、顔の映像から `478` 個の特徴点（ランドマーク）の座標を推定します。目、鼻、口、輪郭など、顔のパーツごとの位置が数値としてわかります。`finger` フォルダの `HandLandmarker` と同じ仕組みで、対象が手から顔に変わったものです。
 
 <img src="/storage/teaching_material/google_facedetection.png" class="" width="500">
 
@@ -36,8 +11,13 @@ import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 | 478点 | 検出される特徴点の総数 |
 | 用途 | 表情認識、AR加工、顔の向き推定など |
 
-> このフォルダには、検出結果を確認する `recognition.html` と、検出結果を使ってスタンプを合成する `decoration.html` の2つのサンプルがあります。
+```javascript
+import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+```
 
+> `MediaPipe Tasks Vision` の基本や `Wasm`・`.task` ファイルの役割については、`finger` フォルダの `README.md` で説明しています。まだ読んでいない場合は先にそちらを確認してください。
+
+## FaceLandmarkerを準備
 ### ファイル構成
 
 ```txt
@@ -50,10 +30,33 @@ face/
     face-data.js        ... 部位ごとのランドマーク番号一覧
     recognition.js       ... recognition.htmlの画面制御
     decoration.js        ... decoration.htmlの画面制御
+
+vendor/                  ... face・finger・pose・vtuberが共有するライブラリ置き場
+  @mediapipe/
+    models/               ... 学習済みモデル本体（.task）
+    tasks-vision/         ... MediaPipe Tasks VisionのJS本体とWasm
 ```
 
-## FaceLandmarkerを準備する
+### vendorとモデル・Wasmの読み込み
 
+`FaceLandmarker` は、`vendor/` フォルダに同梱した `Wasm` 本体と `.task` モデルファイルを読み込んで検出器を作成します。CDNを使わずローカルのファイルだけで動くので、インターネット接続がなくても動作します。
+
+```javascript
+// vendor/ 内の wasm を利用（CDN 不要）
+const WASM_BASE = new URL('../../vendor/@mediapipe/tasks-vision/wasm', import.meta.url).toString();
+// モデル本体（.task）も vendor/ に同梱（オフライン動作）
+const MODEL_ASSET_PATH = new URL(
+    '../../vendor/@mediapipe/models/face_landmarker.task',
+    import.meta.url,
+).toString();
+```
+
+| 項目 | 内容 |
+| ---- | ---- |
+| vendor/ | ライブラリや学習済みモデルをあらかじめダウンロードして置いてあるフォルダ |
+| new URL(パス, import.meta.url) | 今のJSファイルの場所を基準に、vendor内のファイルの絶対URLを組み立てる |
+
+### モデルを読み込み
 `FaceLandmarker` を使うには、まずモデルを読み込んで検出器を作成する必要があります。この処理は `face-landmarker.js` にまとめられています。
 
 ```javascript
@@ -67,33 +70,13 @@ export async function createFaceLandmarker() {
 }
 ```
 
-### モデルとWasmの読み込み
-
-`MediaPipe` は、内部の計算に `Wasm`（`WebAssembly`）と、学習済みモデルの `.task` ファイルを使います。このサンプルでは、どちらも `vendor` フォルダに同梱しており、インターネット接続がなくても動作します。
-
-| 設定 | 内容 |
-| ---- | ---- |
-| FilesetResolver | Wasm本体の場所を指定する |
-| modelAssetPath | 学習済みモデルファイルの場所を指定する |
-| numFaces | 同時に検出する顔の数を指定する |
-| runningMode | 静止画か動画かを指定する |
-
-> `runningMode` を `VIDEO` にすると、連続したフレームを処理する用途に最適化されます。
-
-### なぜWasmを使うのか
-
-478個のランドマークをカメラ映像から毎フレーム推定する処理は、計算量が多く、`JavaScript` だけで実行すると処理が追いつかないことがあります。`MediaPipe` は、この重い計算部分を `C++` で実装し、`Wasm` にコンパイルしてブラウザで動かしています。
-
 | 項目 | 内容 |
 | ---- | ---- |
-| Wasm | ブラウザ上でネイティブに近い速度で実行できる形式 |
-| コンパイル元 | C++などで書かれた処理をブラウザ向けに変換したもの |
-| メリット | JavaScriptより高速に計算を実行できる |
-| 用途 | 画像解析や機械学習の推論など、計算量の多い処理 |
+| FilesetResolver.forVisionTasks(WASM_BASE) | vendor内のWasm本体を読み込む |
+| modelAssetPath | どの.taskファイル（学習済みモデル）を使うかを指定する |
+| numFaces | 同時に検出する顔の最大数を指定する |
+| runningMode | 静止画（IMAGE）か動画（VIDEO）かを指定する |
 
-`FilesetResolver.forVisionTasks()` は、この `Wasm` 本体（`.wasm` ファイル）と、それを読み込むための `JavaScript` ファイルの場所を指定する処理です。指定した場所から `Wasm` を読み込むことで、`FaceLandmarker` が高速に動作するようになります。
-
-> `Wasm` は `JavaScript` を置き換えるものではありません。重い計算だけを `Wasm` が担当し、画面の更新やボタン操作などは、これまで通り `JavaScript` が担当します。
 
 ### 動画フレームからランドマークを推定する
 
@@ -119,11 +102,12 @@ export function estimateFaces(landmarker, video, timestampMs) {
 | 0から1の正規化座標 | ピクセル単位の座標 |
 | x, y, z の3つの値 | 画面上のx, y座標と奥行きz |
 
-> `detectForVideo()` には、単調に増加するタイムスタンプを渡す必要があります。同じ値や過去の値を渡すとエラーになるため、`lastTimestamp` で前回の値を保持しています。
 
 ## 部位ごとのランドマーク番号
 
 `478` 個のランドマークには、それぞれ決まった番号がついています。`face-data.js` では、鼻や目、口など、部位ごとによく使われる番号をまとめています。
+
+<img src="/storage/teaching_material/google_facedetection.png" class="" width="500">
 
 ```javascript
 export const landmarkParts = {
@@ -147,9 +131,9 @@ export const landmarkParts = {
 | eyeContour | 両目の輪郭 |
 | faceOutline | 顔の輪郭 |
 
-> 番号そのものは `MediaPipe Face Mesh` の仕様で決められています。同じ番号は、どの顔でも同じパーツを指します。
+> 番号そのものは `MediaPipe Face Mesh` の仕様で決められています。
 
-## recognition.html - ランドマークを確認する
+## フェースランドマークアプリ
 
 `recognition.html` は、選択した部位のランドマークを、番号つきでカメラ映像の上に表示する画面です。
 
@@ -220,9 +204,73 @@ function render() {
 | 表示中の点数 | 選択中の部位に含まれる番号の数 |
 | 処理速度 | 1秒あたりの描画回数（fps） |
 
-## decoration.html - 顔にスタンプを合成する
 
-`decoration.html` は、`FaceLandmarker` の検出結果を使って、鼻の位置にスタンプ画像を合成するサンプルです。
+## クォータニオン
+
+`クォータニオン（Quaternion）` は、3D空間で物体の回転を表すための仕組みです。
+
+通常、物体の回転は、X軸・Y軸・Z軸の3つの角度で表現できます。しかし、3つの軸を順番に回転させる方法では、回転の順序によって結果が変わったり、特定の角度で回転の自由度が失われる「ジンバルロック」という問題が発生したりします。
+
+<img src="/storage/teaching_material/quaternion.png" class="" width="">
+
+`クォータニオン` は、4つの数値（x, y, z, w）を使って回転を表し、これらの問題を回避しやすくします。
+
+| 項目 | 内容 |
+| ---- | ---- |
+| Quaternion | 3D空間の回転を表す仕組み |
+| x, y, z, w | 回転を表現する4つの数値 |
+| Euler角 | X軸・Y軸・Z軸の3つの角度で回転を表現する方法 |
+| ジンバルロック | 特定の角度で回転の自由度が失われる現象 |
+| 用途 | 3Dモデルの回転、ゲーム、AR、ロボットなど |
+
+### THREE.Quaternion
+`Three.js` にはクォータニオン機能が搭載されています。
+
+```javascript
+const quaternion = new THREE.Quaternion();
+
+quaternion.setFromUnitVectors(
+    new THREE.Vector3(0, 0, 1),
+    faceNormalVector
+);
+
+mesh.quaternion.copy(quaternion);
+```
+
+| 処理 | 内容 |
+| ---- | ---- |
+| new THREE.Quaternion() | 回転を表すオブジェクトを作成する |
+| new THREE.Vector3(0, 0, 1) | 回転前の基準となるZ軸方向 |
+| faceNormalVector | ランドマークから計算した顔の向き |
+| setFromUnitVectors() | 基準方向から顔の向きへ回転するクォータニオンを求める |
+| mesh.quaternion.copy() | 計算した回転をスタンプに適用する |
+
+### 例
+例えば、顔が右を向いた場合、`faceNormalVector` の方向も変化します。
+
+`setFromUnitVectors()` は、基準となるZ軸方向から新しい顔の向きまでの回転を計算します。その結果を `mesh.quaternion` に設定することで、スタンプも顔の動きに合わせて回転します。
+
+**処理の流れ**
+
+```text
+顔のランドマークを取得
+        ↓
+顔の向き（法線ベクトル）を計算
+        ↓
+基準方向（0, 0, 1）と比較
+        ↓
+クォータニオンで回転を計算
+        ↓
+mesh.quaternion に適用
+        ↓
+スタンプが顔の向きに合わせて回転
+```
+
+> `クォータニオン` の4つの数値を自分で計算する必要はありません。`three.js` の `setFromUnitVectors()` を使えば、2つの方向ベクトルから回転を求められます。ただし、2つの方向だけでは顔を左右に傾ける回転（ロール）までは一意に決まりません。今回の方法は、主に顔の法線方向にスタンプを向けるための簡易的な処理です。
+
+## 顔スタンプ合成
+
+`FaceLandmarker` の検出結果を使って、鼻の位置にスタンプ画像を合成するサンプルです。
 
 <img src="/storage/teaching_material/js_mediapipe_face.png" class="" width="600">
 
@@ -376,7 +424,6 @@ button.addEventListener('click', () => {
 
 | 項目 | 内容 |
 | ---- | ---- |
-| MediaPipe Tasks Vision | 機械学習の推論をブラウザ上で手軽に扱う仕組み |
 | FaceLandmarker | 顔から478個のランドマークを検出する機能 |
 | detectForVideo | 動画フレームからランドマークを推定するメソッド |
 | ランドマーク番号 | 顔の各パーツに対応する固定の番号 |

@@ -40,15 +40,16 @@ function uniqueIndices(part) {
 
 // UI 構築
 function buildPartButtons() {
-    Object.keys(landmarkParts).forEach((key) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.dataset.part = key;
-        btn.textContent = PART_LABELS[key] ?? key;
-        btn.className = baseChipClass(false);
-        btn.addEventListener('click', () => selectPart(key));
-        partButtonsEl.appendChild(btn);
-    });
+    // TODO: 部位ボタンを生成
+    // Object.keys(landmarkParts).forEach((key) => {
+    //     const btn = document.createElement('button');
+    //     btn.type = 'button';
+    //     btn.dataset.part = key;
+    //     btn.textContent = PART_LABELS[key] ?? key;
+    //     btn.className = baseChipClass(false);
+    //     btn.addEventListener('click', () => selectPart(key));
+    //     partButtonsEl.appendChild(btn);
+    // });
 }
 
 function baseChipClass(active) {
@@ -74,18 +75,19 @@ function selectPart(key) {
 function buildIndexList() {
     indexListEl.replaceChildren();
     const landmarks = uniqueIndices(selectedPart);
-    landmarks.forEach((index) => {
-        const chip = document.createElement('button');
-        chip.type = 'button';
-        chip.dataset.index = String(index);
-        chip.textContent = index;
-        chip.className = indexChipClass(false);
-        chip.addEventListener('click', () => {
-            highlightIndex = highlightIndex === index ? null : index;
-            refreshIndexChips();
-        });
-        indexListEl.appendChild(chip);
-    });
+    // TODO: ランドマーク番号のボタンを生成
+    // landmarks.forEach((index) => {
+    //     const chip = document.createElement('button');
+    //     chip.type = 'button';
+    //     chip.dataset.index = String(index);
+    //     chip.textContent = index;
+    //     chip.className = indexChipClass(false);
+    //     chip.addEventListener('click', () => {
+    //         highlightIndex = highlightIndex === index ? null : index;
+    //         refreshIndexChips();
+    //     });
+    //     indexListEl.appendChild(chip);
+    // });
 }
 
 function indexChipClass(active) {
@@ -197,7 +199,7 @@ function render() {
     // 現在のタイムスタンプを取得
     const timestamp = performance.now();
     // TODO: 顔ランドマークを推定: estimateFaces(): detector, videoEl, timestamp を引数
-    const faces = estimateFaces(detector, videoEl, timestamp);
+    const faces = [];
     // 描画
     drawResults(faces);
     // ステータスを更新
@@ -214,7 +216,7 @@ async function app() {
         showIndices = toggleIndexEl.checked;
     });
     // TODO: 顔ランドマーク推定器を初期化(非同期): createFaceLandmarker
-    detector = await createFaceLandmarker();
+    detector = {};
     // Webカメラをセットアップ
     await setupCamera();
     render();
