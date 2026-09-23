@@ -20,16 +20,13 @@
 <body class="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 text-slate-800">
   <main class="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10">
 
+    <!-- ヘッダー -->
     <header class="text-center">
-      <p class="text-sm font-semibold uppercase tracking-widest text-indigo-500">MediaPipe Tasks Vision</p>
-      <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">ヨガ・ストレッチ お手本トレース</h1>
+      <h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">体のランドマーク検出</h1>
+      <p class="mt-2 text-sm text-slate-500">
+        PoseLandmarker が推定する 33 個の特徴点のうち、選択した部位の点と番号を可視化します。
+      </p>
     </header>
-
-    <!-- お手本の指示文（タイトル直下に大きく表示） -->
-    <div class="rounded-2xl bg-indigo-600 px-6 py-5 text-center shadow-lg ring-1 ring-indigo-900/10">
-      <p id="pose-name" class="text-xs font-semibold uppercase tracking-widest text-indigo-200"></p>
-      <p id="pose-description" class="mt-1 text-xl font-bold leading-relaxed text-white sm:text-2xl"></p>
-    </div>
 
     <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
 
@@ -37,10 +34,8 @@
       <section class="flex flex-col gap-4">
         <figure
           class="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-slate-900 shadow-xl ring-1 ring-slate-900/10">
-          <video id="video" class="absolute inset-0 h-full w-full -scale-x-100 object-cover" autoplay muted playsinline
-            loop></video>
-          <canvas id="canvas" width="640" height="480"
-            class="pointer-events-none absolute inset-0 h-full w-full -scale-x-100"></canvas>
+          <video id="video" class="absolute inset-0 h-full w-full object-cover" autoplay muted playsinline loop></video>
+          <canvas id="canvas" width="640" height="480" class="pointer-events-none absolute inset-0 h-full w-full"></canvas>
           <figcaption
             class="absolute bottom-3 left-3 flex items-center gap-2 rounded-full bg-slate-900/60 px-3 py-1 text-xs font-medium text-white backdrop-blur">
             <span id="live-dot" class="h-2 w-2 rounded-full bg-slate-400"></span>
@@ -48,34 +43,56 @@
           </figcaption>
         </figure>
 
-        <div class="flex flex-wrap items-center gap-3">
-          <label class="text-sm text-slate-600" for="pose-select">お手本ポーズ</label>
-          <select id="pose-select"
-            class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"></select>
-          <button id="capture-btn" type="button"
-            class="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-500">
-            今の姿勢をお手本に保存
-          </button>
-        </div>
+        <!-- 表示オプション -->
+        <label class="flex items-center gap-2 text-sm text-slate-600">
+          <input id="toggle-index" type="checkbox"
+            class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+          ランドマーク番号をキャンバスに表示
+        </label>
       </section>
 
-      <!-- 右：スコア -->
+      <!-- 右：ステータス & コントロール -->
       <aside class="flex flex-col gap-6">
 
-        <div class="rounded-2xl bg-white/70 p-5 text-center shadow-sm ring-1 ring-slate-900/5 backdrop-blur">
-          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">一致度</h2>
-          <p id="score-overall" class="mt-1 text-5xl font-bold tracking-tight text-slate-900">--</p>
-          <p class="text-xs text-slate-400">%</p>
+        <!-- 検出ステータス -->
+        <div class="rounded-2xl bg-white/70 p-4 shadow-sm ring-1 ring-slate-900/5 backdrop-blur">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">検出ステータス</h2>
+          <dl class="mt-3 space-y-2 text-sm">
+            <div class="flex justify-between"><dt class="text-slate-500">体の検出</dt>
+              <dd id="stat-pose" class="font-semibold text-slate-400">—</dd>
+            </div>
+            <div class="flex justify-between"><dt class="text-slate-500">総ランドマーク数</dt>
+              <dd id="stat-total" class="font-mono font-semibold text-slate-700">0</dd>
+            </div>
+            <div class="flex justify-between"><dt class="text-slate-500">表示中の点数</dt>
+              <dd id="stat-count" class="font-mono font-semibold text-slate-700">0</dd>
+            </div>
+            <div class="flex justify-between"><dt class="text-slate-500">処理速度</dt>
+              <dd id="stat-fps" class="font-mono font-semibold text-slate-700">0 fps</dd>
+            </div>
+          </dl>
         </div>
 
-        <!-- 関節ごとの詳細（動的生成） -->
-        <div id="joint-details" class="flex flex-col gap-3"></div>
+        <!-- 部位ボタン -->
+        <div class="rounded-2xl bg-white/70 p-4 shadow-sm ring-1 ring-slate-900/5 backdrop-blur">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">部位を選択</h2>
+          <div id="part-buttons" class="mt-3 flex flex-wrap gap-2"></div>
+        </div>
 
-        <p class="text-xs text-slate-400">
-          映像は左右反転して表示しています。全身が映る位置まで下がってお試しください。
-        </p>
+        <!-- ランドマーク番号一覧 -->
+        <div class="rounded-2xl bg-white/70 p-4 shadow-sm ring-1 ring-slate-900/5 backdrop-blur">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span id="index-title">ランドマーク番号</span>
+          </h2>
+          <p class="mt-1 text-xs text-slate-400">クリックでその点をキャンバス上で強調</p>
+          <div id="index-list" class="mt-3 flex flex-wrap gap-1.5"></div>
+        </div>
       </aside>
     </div>
+
+    <p class="text-center text-xs text-slate-400">
+      映像は端末内で処理され、外部へ送信されません。「左・右」は映っている本人から見た左右です（映像は反転していません）。
+    </p>
   </main>
 
   <script type="module" src="js/main.js"></script>

@@ -1,13 +1,14 @@
 import { JOINT_LABELS } from './pose-landmarker.js';
 
 /**
- * 1つの関節角度の一致度を判定する
+ * 1つの関節角度の一致度を判定
  * @param {number} current 現在の角度
  * @param {number} target お手本の角度
  * @param {number} tolerance 許容差（度）
  * @returns {{diff:number, score:number, level:'good'|'warn'|'bad'}}
  */
 function scoreJoint(current, target, tolerance) {
+    // 関節角度の差分を計算
     const diff = Math.abs(current - target);
     const score = Math.max(0, 100 - (diff / tolerance) * 50);
     const level = diff <= tolerance ? 'good' : diff <= tolerance * 2 ? 'warn' : 'bad';

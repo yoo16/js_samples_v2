@@ -18,7 +18,8 @@ const NATURAL_ARM_POSE = [
 
 export async function loadVRM(file) {
   const loader = new GLTFLoader();
-  loader.register((parser) => new VRMLoaderPlugin(parser));
+  // TODO: GLTFLoader に VRM 用のプラグインを登録: loader.register((parser) => new VRMLoaderPlugin(parser))
+
   const objectUrl = URL.createObjectURL(file);
 
   try {
@@ -56,22 +57,26 @@ export function applyTrackingToVRM(vrm, frame) {
   const head = vrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.Head);
   const neck = vrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.Neck);
 
-  if (head) {
-    head.rotation.set(frame.head.pitch, frame.head.yaw, -frame.head.roll, 'XYZ');
-  }
+  // TODO: 頭と首の回転: rotation.set(pitch, yaw, -roll, 'XYZ')。首は頭の 0.35 倍（roll は 0.2 倍）
+  // if (head) {
+  //   head.rotation.set(frame.head.pitch, frame.head.yaw, -frame.head.roll, 'XYZ');
+  // }
 
-  if (neck) {
-    neck.rotation.set(frame.head.pitch * 0.35, frame.head.yaw * 0.35, -frame.head.roll * 0.2, 'XYZ');
-  }
+  // if (neck) {
+  //   neck.rotation.set(frame.head.pitch * 0.35, frame.head.yaw * 0.35, -frame.head.roll * 0.2, 'XYZ');
+  // }
 
-  setExpression(vrm, VRMExpressionPresetName.Blink, Math.max(frame.eyes.leftBlink, frame.eyes.rightBlink));
-  setExpression(vrm, VRMExpressionPresetName.BlinkLeft, frame.eyes.leftBlink);
-  setExpression(vrm, VRMExpressionPresetName.BlinkRight, frame.eyes.rightBlink);
-  setExpression(vrm, VRMExpressionPresetName.Aa, frame.mouth.aa);
-  setExpression(vrm, VRMExpressionPresetName.Ih, frame.mouth.ih);
-  setExpression(vrm, VRMExpressionPresetName.Ou, frame.mouth.ou);
-  setExpression(vrm, VRMExpressionPresetName.Ee, frame.mouth.ee);
-  setExpression(vrm, VRMExpressionPresetName.Oh, frame.mouth.oh);
+  // TODO: まばたきの表情: Blink は左右の大きい方、BlinkLeft / BlinkRight はそれぞれの値
+  // setExpression(vrm, VRMExpressionPresetName.Blink, Math.max(frame.eyes.leftBlink, frame.eyes.rightBlink));
+  // setExpression(vrm, VRMExpressionPresetName.BlinkLeft, frame.eyes.leftBlink);
+  // setExpression(vrm, VRMExpressionPresetName.BlinkRight, frame.eyes.rightBlink);
+
+  // TODO: 口の表情: あ(Aa)・い(Ih)・う(Ou)・え(Ee)・お(Oh) に frame.mouth の値を設定
+  // setExpression(vrm, VRMExpressionPresetName.Aa, frame.mouth.aa);
+  // setExpression(vrm, VRMExpressionPresetName.Ih, frame.mouth.ih);
+  // setExpression(vrm, VRMExpressionPresetName.Ou, frame.mouth.ou);
+  // setExpression(vrm, VRMExpressionPresetName.Ee, frame.mouth.ee);
+  // setExpression(vrm, VRMExpressionPresetName.Oh, frame.mouth.oh);
 }
 
 export function resetVRMPose(vrm) {

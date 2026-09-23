@@ -108,7 +108,8 @@ async function handleArmToggle(event) {
 async function initializeFaceDetector() {
   try {
     setText(elements.detectorStatus, 'loading');
-    state.detector = await createFaceDetector();
+    // TODO: 顔ランドマーク推定器を初期化(非同期): createFaceDetector()
+    state.detector = null;
     setText(elements.detectorStatus, 'ready');
   } catch (error) {
     setText(elements.detectorStatus, `error: ${toMessage(error)}`);
@@ -118,7 +119,8 @@ async function initializeFaceDetector() {
 async function startCamera() {
   try {
     setText(elements.cameraStatus, 'requesting');
-    await startCameraStream(elements.video);
+    // TODO: Webカメラを開始(非同期): startCameraStream(): 引数: elements.video
+
     setText(elements.cameraStatus, 'running');
   } catch (error) {
     setText(elements.cameraStatus, `error: ${toMessage(error)}`);
@@ -139,7 +141,8 @@ async function handleVrmFile(event) {
     }
 
     prepareVRMForFaceStage(vrm);
-    sceneState.root.add(vrm.scene);
+    // TODO: VRM のシーンを 3D 空間に追加: sceneState.root.add(vrm.scene)
+
     state.currentVrm = vrm;
   } catch (error) {
     alert(`VRMを読み込めませんでした: ${toMessage(error)}`);
@@ -149,12 +152,13 @@ async function handleVrmFile(event) {
 function renderLoop(now) {
   requestAnimationFrame(renderLoop);
 
-  state.frame = getSmoothedFaceFrame({
-    detector: state.detector,
-    video: elements.video,
-    now,
-    currentFrame: state.frame,
-  });
+  // TODO: 顔の向き・まばたき・口の形を推定して state.frame に保存
+  // state.frame = getSmoothedFaceFrame({
+  //   detector: state.detector,
+  //   video: elements.video,
+  //   now,
+  //   currentFrame: state.frame,
+  // });
 
   if (state.armTrackingEnabled) {
     state.armFrame = getSmoothedArmFrame({
@@ -166,7 +170,8 @@ function renderLoop(now) {
   }
 
   if (state.currentVrm) {
-    applyTrackingToVRM(state.currentVrm, state.frame);
+    // TODO: 推定結果を VRM に反映: applyTrackingToVRM(): 引数: state.currentVrm, state.frame
+
     if (state.armTrackingEnabled) {
       applyArmTrackingToVRM(state.currentVrm, state.armFrame);
     }

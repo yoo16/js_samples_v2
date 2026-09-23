@@ -112,7 +112,9 @@ function renderHandDetails(hands) {
     // 手の詳細情報を表示するためのカードを生成
     hands.forEach((hand, handIndex) => {
         const color = HAND_COLORS[handIndex % HAND_COLORS.length];
+        // 各指の状態を検出: hand-landmarker.js の detectExtendedFingers() を使用
         const fingers = detectExtendedFingers(hand.keypoints);
+        // 立てている指の本数
         const upCount = Object.values(fingers).filter(Boolean).length;
 
         const card = document.createElement('div');

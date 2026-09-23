@@ -1,6 +1,4 @@
 // お手本ポーズの定義。
-// angles は computeJointAngles() が返す4つの関節角度（度）の目標値。
-// tolerance はその角度からどれだけずれてもよいかの許容範囲（度）。
 export const REFERENCE_POSES = [
     {
         id: 'mountain',

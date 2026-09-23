@@ -34,7 +34,8 @@ function setUpperArm(vrm, boneName, shoulderDeg, sign) {
   const node = vrm.humanoid?.getNormalizedBoneNode(boneName);
   if (!node) return;
 
-  const z = sign * (REST_SHOULDER_DEG - shoulderDeg) * DEG2RAD;
+  // TODO: 肩の角度を z 回転（ラジアン）に変換: sign * (REST_SHOULDER_DEG - shoulderDeg) * DEG2RAD
+  const z = 0;
   node.rotation.set(0, 0, z, 'XYZ');
 }
 
@@ -43,6 +44,7 @@ function setTwist(vrm, twistRad) {
     ?? vrm.humanoid?.getNormalizedBoneNode(VRMHumanBoneName.Spine);
   if (!chest) return;
 
-  const clamped = Math.max(-TWIST_MAX_RAD, Math.min(TWIST_MAX_RAD, twistRad));
+  // TODO: twistRad を -TWIST_MAX_RAD 〜 TWIST_MAX_RAD の範囲に制限: Math.max(), Math.min()
+  const clamped = 0;
   chest.rotation.set(0, SIGN.twist * clamped, 0, 'XYZ');
 }

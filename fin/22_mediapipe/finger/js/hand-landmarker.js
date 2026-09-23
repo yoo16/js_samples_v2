@@ -85,17 +85,40 @@ export const FINGERS = {
     pinky: { name: '小指', mcp: 17, pip: 18, tip: 20 },
 };
 
+// 親指が「まっすぐ伸びている」とみなす角度のしきい値（度）。
+// CMC-MCP-TIPの角度は、まっすぐ伸ばすと180度に近づき、
+// 握ったり手のひら側に曲げたりすると小さくなる。
+const THUMB_STRAIGHT_ANGLE = 150;
+
+function angleAt(a, b, c) {
+    const v1 = { x: a.x - b.x, y: a.y - b.y };
+    const v2 = { x: c.x - b.x, y: c.y - b.y };
+    const dot = v1.x * v2.x + v1.y * v2.y;
+    const mag = Math.hypot(v1.x, v1.y) * Math.hypot(v2.x, v2.y);
+    if (mag === 0) return 0;
+    const cos = Math.min(1, Math.max(-1, dot / mag));
+    return (Math.acos(cos) * 180) / Math.PI;
+}
+
 /**
- * 各指が伸びているか判定する（TIP が MCP より手首から遠ければ伸展とみなす簡易ロジック）
+ * 各指が伸びているか判定する（TIP が PIP より手首から遠ければ伸展とみなす簡易ロジック）。
+ * 親指だけは、手首との距離で判定すると横方向の動きを誤検出しやすいため、
+ * 関節の曲がり具合（CMC-MCP-TIPの角度）で判定する。手の向きに影響されにくく、
+ * ピースサインで軽く立った程度では反応せず、まっすぐ開いたときだけ true になる。
  * @param {{x:number,y:number}[]} keypoints ピクセル座標の 21 点
  * @returns {Record<string, boolean>}
  */
 export function detectExtendedFingers(keypoints) {
     const wrist = keypoints[0];
+    const thumbCmc = keypoints[1];
     const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
     const state = {};
     for (const [key, f] of Object.entries(FINGERS)) {
-        state[key] = dist(keypoints[f.tip], wrist) > dist(keypoints[f.pip], wrist);
+        if (key === 'thumb') {
+            state[key] = angleAt(thumbCmc, keypoints[f.mcp], keypoints[f.tip]) > THUMB_STRAIGHT_ANGLE;
+        } else {
+            state[key] = dist(keypoints[f.tip], wrist) > dist(keypoints[f.pip], wrist);
+        }
     }
     return state;
 }

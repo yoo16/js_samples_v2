@@ -1,45 +1,116 @@
-import { createPoseLandmarker, estimatePose, computeJointAngles, POSE_CONNECTIONS } from './pose-landmarker.js';
-import { REFERENCE_POSES, createCustomPose } from './reference-poses.js';
-import { comparePose } from './pose-compare.js';
+// pose-landmarker.js 姿勢ランドマーク推定機能をインポート
+import { createPoseLandmarker, estimatePoses, POSE_CONNECTIONS } from './pose-landmarker.js';
+// pose-data.js 体のランドマークの部位情報をインポート
+import { landmarkParts, PART_LABELS, LANDMARK_NAMES } from './pose-data.js';
 
 // DOM
 const videoEl = document.getElementById('video');
 const canvasEl = document.getElementById('canvas');
 const ctx = canvasEl.getContext('2d');
-const poseSelectEl = document.getElementById('pose-select');
-const captureBtnEl = document.getElementById('capture-btn');
-const poseNameEl = document.getElementById('pose-name');
-const poseDescriptionEl = document.getElementById('pose-description');
+const partButtonsEl = document.getElementById('part-buttons');
+const indexListEl = document.getElementById('index-list');
+const indexTitleEl = document.getElementById('index-title');
+const toggleIndexEl = document.getElementById('toggle-index');
 const liveDotEl = document.getElementById('live-dot');
 const liveLabelEl = document.getElementById('live-label');
-const scoreOverallEl = document.getElementById('score-overall');
-const jointDetailsEl = document.getElementById('joint-details');
+const statPoseEl = document.getElementById('stat-pose');
+const statTotalEl = document.getElementById('stat-total');
+const statCountEl = document.getElementById('stat-count');
+const statFpsEl = document.getElementById('stat-fps');
 
+// カメラ解像度
 const REQUEST_WIDTH = 640;
 const REQUEST_HEIGHT = 480;
 
-const LEVEL_COLOR = { good: '#22c55e', warn: '#f59e0b', bad: '#ef4444' };
-
 // 状態
-let landmarker;
-let poses = [...REFERENCE_POSES];
-let currentPoseIndex = 0;
-let lastAngles = null;
+let detector;   // 姿勢ランドマーク推定器
+let selectedPart = 'rightArm';
+let showIndices = false;
+let highlightIndex = null;
+let fps = 0;
+let lastTime = performance.now();
 
-function populatePoseSelect() {
-    poseSelectEl.replaceChildren();
-    poses.forEach((pose, index) => {
-        const option = document.createElement('option');
-        option.value = String(index);
-        option.textContent = pose.name;
-        poseSelectEl.appendChild(option);
-    });
-    poseSelectEl.value = String(currentPoseIndex);
-    poseNameEl.textContent = poses[currentPoseIndex].name;
-    poseDescriptionEl.textContent = poses[currentPoseIndex].description;
+// 部位ごとの重複を除いた番号リスト
+function uniqueIndices(part) {
+    // 部位に対応するランドマーク番号の重複を除去
+    const landmarks = [...new Set(landmarkParts[part])];
+    // ソートして返す
+    return landmarks.sort((a, b) => a - b);
 }
 
+// UI 構築
+function buildPartButtons() {
+    // TODO: 部位選択ボタンの生成
+    // Object.keys(landmarkParts).forEach((key) => {
+    //     const btn = document.createElement('button');
+    //     btn.type = 'button';
+    //     btn.dataset.part = key;
+    //     btn.textContent = PART_LABELS[key] ?? key;
+    //     btn.className = baseChipClass(false);
+    //     btn.addEventListener('click', () => selectPart(key));
+    //     partButtonsEl.appendChild(btn);
+    // });
+}
+
+function baseChipClass(active) {
+    return [
+        'rounded-full px-3 py-1 text-sm font-medium transition',
+        active
+            ? 'bg-indigo-600 text-white shadow'
+            : 'bg-white text-slate-600 ring-1 ring-inset ring-slate-300 hover:bg-slate-50',
+    ].join(' ');
+}
+
+// 部位選択
+function selectPart(key) {
+    selectedPart = key;
+    highlightIndex = null;
+    [...partButtonsEl.children].forEach((btn) => {
+        btn.className = baseChipClass(btn.dataset.part === key);
+    });
+    buildIndexList();
+    indexTitleEl.textContent = `ランドマーク番号 — ${PART_LABELS[key] ?? key}`;
+}
+
+// 選択中の部位に対応するランドマーク番号リスト
+function buildIndexList() {
+    // TODO: 選択中の部位に対応するランドマーク番号リストを表示
+    // indexListEl.replaceChildren();
+    // const landmarks = uniqueIndices(selectedPart);
+    // landmarks.forEach((index) => {
+    //     const chip = document.createElement('button');
+    //     chip.type = 'button';
+    //     chip.dataset.index = String(index);
+    //     // 番号と名前を表示（例: 14 右ひじ）
+    //     chip.textContent = `${index} ${LANDMARK_NAMES[index]}`;
+    //     chip.className = indexChipClass(false);
+    //     chip.addEventListener('click', () => {
+    //         highlightIndex = highlightIndex === index ? null : index;
+    //         refreshIndexChips();
+    //     });
+    //     indexListEl.appendChild(chip);
+    // });
+}
+
+function indexChipClass(active) {
+    return [
+        'rounded-md px-1.5 py-0.5 text-xs transition',
+        active
+            ? 'bg-rose-500 text-white'
+            : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
+    ].join(' ');
+}
+
+function refreshIndexChips() {
+    [...indexListEl.children].forEach((chip) => {
+        const isActive = Number(chip.dataset.index) === highlightIndex;
+        chip.className = indexChipClass(isActive);
+    });
+}
+
+// 検出
 async function setupCamera() {
+    // ビデオストリームを取得
     const stream = await navigator.mediaDevices.getUserMedia({
         video: {
             width: { ideal: REQUEST_WIDTH },
@@ -50,118 +121,125 @@ async function setupCamera() {
         audio: false,
     });
     videoEl.srcObject = stream;
+    // ビデオ再生
     await videoEl.play();
 }
 
-function drawSkeleton(keypoints, overallScore) {
+function drawResults(poses) {
     ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-    if (!keypoints) return;
+
+    const pose = poses[0];
+    if (!pose) return;
 
     const srcWidth = videoEl.videoWidth || REQUEST_WIDTH;
     const srcHeight = videoEl.videoHeight || REQUEST_HEIGHT;
     const scaleX = canvasEl.width / srcWidth;
     const scaleY = canvasEl.height / srcHeight;
-    const pts = keypoints.map((p) => ({ x: p.x * scaleX, y: p.y * scaleY }));
+    const indices = uniqueIndices(selectedPart);
 
-    const color = overallScore >= 80 ? LEVEL_COLOR.good : overallScore >= 50 ? LEVEL_COLOR.warn : LEVEL_COLOR.bad;
-
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 4;
+    // 全身の骨格描画
     ctx.beginPath();
-    POSE_CONNECTIONS.forEach(([a, b]) => {
-        ctx.moveTo(pts[a].x, pts[a].y);
-        ctx.lineTo(pts[b].x, pts[b].y);
-    });
-    ctx.stroke();
+    // TODO: 骨格を描画
+    // POSE_CONNECTIONS.forEach(([a, b]) => {
+    //     ctx.moveTo(pose.keypoints[a].x * scaleX, pose.keypoints[a].y * scaleY);
+    //     ctx.lineTo(pose.keypoints[b].x * scaleX, pose.keypoints[b].y * scaleY);
+    // });
+    // ctx.lineWidth = 2;
+    // ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    // ctx.stroke();
 
-    pts.forEach((p, index) => {
-        if (index > 22) return; // 手足の先や顔まわりは点を省略
+    ctx.font = '12px sans-serif';
+    ctx.textBaseline = 'middle';
+
+    // 選択された部位のランドマーク番号を取得
+    indices.forEach((index) => {
+        // TODO: ランドマークの座標を取得: pose.keypoints[index]
+        const point = { x: 0, y: 0 };
+        if (!point) return;
+        // ランドマークの描画位置を計算
+        const x = point.x * scaleX;
+        const y = point.y * scaleY;
+        // ハイライトされているかどうかを判定
+        const isHi = index === highlightIndex;
+
+        // ランドマークを描画
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI);
-        ctx.fillStyle = '#fff';
+        ctx.arc(x, y, isHi ? 8 : 5, 0, 2 * Math.PI);
+        ctx.fillStyle = isHi ? '#22d3ee' : '#f43f5e';
         ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = color;
-        ctx.stroke();
+
+        if (isHi) {
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#0e7490';
+            ctx.stroke();
+        }
+
+        // ランドマークのラベルを描画
+        if (showIndices || isHi) {
+            const label = `${index} ${LANDMARK_NAMES[index]}`;
+            ctx.fillStyle = 'rgba(15,23,42,0.75)';
+            const w = ctx.measureText(label).width + 6;
+            ctx.fillRect(x + 8, y - 9, w, 18);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(label, x + 11, y);
+        }
     });
 }
 
-function renderJointDetails(result) {
-    jointDetailsEl.replaceChildren();
+function updateStatus(poses) {
+    const pose = poses[0];
+    const detected = Boolean(pose);
 
-    for (const [key, joint] of Object.entries(result.joints)) {
-        const level = joint.level;
-        const badgeClass = {
-            good: 'bg-emerald-500 text-white',
-            warn: 'bg-amber-400 text-white',
-            bad: 'bg-rose-500 text-white',
-        }[level];
-
-        const card = document.createElement('div');
-        card.className = 'rounded-2xl bg-white/70 p-3 shadow-sm ring-1 ring-slate-900/5 backdrop-blur';
-        card.innerHTML = `
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-slate-700">${joint.label}</span>
-              <span class="rounded-full px-2 py-0.5 text-xs font-semibold ${badgeClass}">${Math.round(joint.score)}点</span>
-            </div>
-            <p class="mt-1 text-xs text-slate-400 font-mono">今: ${joint.current.toFixed(0)}° / お手本: ${joint.target.toFixed(0)}°</p>
-        `;
-        jointDetailsEl.appendChild(card);
-    }
-}
-
-function updateStatus(detected) {
+    statPoseEl.textContent = detected ? '検出中' : '未検出';
+    statPoseEl.className = `font-semibold ${detected ? 'text-emerald-600' : 'text-slate-400'}`;
     liveDotEl.className = `h-2 w-2 rounded-full ${detected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`;
-    liveLabelEl.textContent = detected ? '姿勢を検出中' : '全身を映してください';
+    liveLabelEl.textContent = detected ? '検出中' : '体を探しています';
+
+    // TODO: ランドマークの総数を更新
+    // statTotalEl.textContent = pose ? pose.keypoints.length : 0;
+    // TODO: 選択された部位のランドマーク数を更新
+    // statCountEl.textContent = detected ? uniqueIndices(selectedPart).length : 0;
+    statFpsEl.textContent = `${fps} fps`;
 }
 
-function render() {
-    const results = estimatePose(landmarker, videoEl, performance.now());
-    const person = results[0];
-
-    if (person) {
-        lastAngles = computeJointAngles(person.keypoints);
-        const comparison = comparePose(lastAngles, poses[currentPoseIndex]);
-        drawSkeleton(person.keypoints, comparison.overall);
-        renderJointDetails(comparison);
-        scoreOverallEl.textContent = String(comparison.overall);
-        updateStatus(true);
-    } else {
-        lastAngles = null;
-        drawSkeleton(null, 0);
-        updateStatus(false);
+// FPS 計測
+function tickFps() {
+    const now = performance.now();
+    const delta = now - lastTime;
+    lastTime = now;
+    if (delta > 0) {
+        fps = Math.round(fps * 0.8 + (1000 / delta) * 0.2);
     }
+}
 
+// 描画 & 更新
+function render() {
+    // FPS を更新
+    tickFps();
+    // 現在のタイムスタンプを取得
+    const timestamp = performance.now();
+    // 姿勢ランドマークを推定: estimatePoses(): detector, videoEl, timestamp を引数
+    const poses = estimatePoses(detector, videoEl, timestamp);
+    // 描画
+    drawResults(poses);
+    // ステータスを更新
+    updateStatus(poses);
+    // 次のフレームを描画
     requestAnimationFrame(render);
 }
 
-function app() {
-    populatePoseSelect();
-
-    poseSelectEl.addEventListener('change', () => {
-        currentPoseIndex = Number(poseSelectEl.value);
-        poseNameEl.textContent = poses[currentPoseIndex].name;
-        poseDescriptionEl.textContent = poses[currentPoseIndex].description;
+async function app() {
+    buildPartButtons();
+    selectPart(selectedPart);
+    // 番号表示の切り替えイベント
+    toggleIndexEl.addEventListener('change', () => {
+        showIndices = toggleIndexEl.checked;
     });
-
-    captureBtnEl.addEventListener('click', () => {
-        if (!lastAngles) return;
-        const custom = createCustomPose(lastAngles);
-        const existingIndex = poses.findIndex((pose) => pose.id === 'custom');
-        if (existingIndex >= 0) {
-            poses[existingIndex] = custom;
-        } else {
-            poses.push(custom);
-        }
-        currentPoseIndex = poses.findIndex((pose) => pose.id === 'custom');
-        populatePoseSelect();
-    });
-
-    (async () => {
-        landmarker = await createPoseLandmarker(1);
-        await setupCamera();
-        render();
-    })();
+    // 姿勢ランドマーク推定器を初期化(非同期): createPoseLandmarker
+    detector = await createPoseLandmarker();
+    // Webカメラをセットアップ
+    await setupCamera();
+    render();
 }
 
 app();

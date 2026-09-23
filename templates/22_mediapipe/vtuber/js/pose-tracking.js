@@ -55,7 +55,8 @@ export function getSmoothedArmFrame({ detector, video, now, currentFrame }) {
   }
 
   try {
-    const result = detector.detectForVideo(video, now);
+    // TODO: 動画フレームから姿勢ランドマークを検出: detector.detectForVideo(): 引数: video, now
+    const result = { landmarks: [] };
     const landmarks = result.landmarks?.[0];
     const nextFrame = landmarks ? analyzeLandmarks(landmarks) : DEFAULT_ARM_FRAME;
     return smoothFrame(currentFrame, nextFrame);
@@ -91,10 +92,12 @@ function analyzeLandmarks(landmarks) {
     left: {
       // 肩(頂点)から見た「腰方向」と「ひじ方向」のなす角。
       // 腕を体の横に下ろすと小さく、水平に上げると90°付近、真上に上げると180°に近づく。
-      shoulderDeg: angleAt(leftHip, leftShoulder, leftElbow),
+      // TODO: angleAt(): 引数: leftHip, leftShoulder, leftElbow
+      shoulderDeg: 0,
     },
     right: {
-      shoulderDeg: angleAt(rightHip, rightShoulder, rightElbow),
+      // TODO: angleAt(): 引数: rightHip, rightShoulder, rightElbow
+      shoulderDeg: 0,
     },
     twistRad: calculateTwist(leftShoulder, rightShoulder),
   };
@@ -106,7 +109,8 @@ function analyzeLandmarks(landmarks) {
 function calculateTwist(leftShoulder, rightShoulder) {
   const dx = leftShoulder.x - rightShoulder.x;
   const dz = leftShoulder.z - rightShoulder.z;
-  const rawAngle = Math.atan2(dz, dx);
+  // TODO: 肩ラインの角度を計算: Math.atan2(): 引数: dz, dx
+  const rawAngle = 0;
 
   if (twistRestAngle === null) {
     twistRestAngle = rawAngle;
