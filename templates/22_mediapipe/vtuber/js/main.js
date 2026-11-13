@@ -1,3 +1,4 @@
+// Three.js のモジュールをインポート
 import {
   AmbientLight,
   Clock,
@@ -8,6 +9,8 @@ import {
   Scene,
   WebGLRenderer,
 } from 'three';
+
+// pose-tracking.js から腕のトラッキング関連の機能をインポート
 import {
   DEFAULT_FRAME,
   createFaceDetector,
@@ -15,6 +18,8 @@ import {
   resetHeadCalibration,
   startCameraStream,
 } from './face-tracking.js';
+
+// vrm.js モジュールをインポート
 import {
   applyTrackingToVRM,
   disposeObject,
@@ -22,8 +27,8 @@ import {
   prepareVRMForFaceStage,
   resetVRMPose,
 } from './vrm.js';
-// 肩・ひじをPoseで動かす追加機能（別ファイル）。不要なら以下のimportと
-// 関連する呼び出し箇所を削除すれば、元の顔トラッキングのみの状態に戻る。
+
+// pose-tracking.js から腕のトラッキング関連の機能をインポート
 import {
   DEFAULT_ARM_FRAME,
   createPoseDetector,
@@ -32,6 +37,7 @@ import {
 } from './pose-tracking.js';
 import { applyArmTrackingToVRM } from './vrm-arm-pose.js';
 
+// シーンの初期化とレンダラーの設定
 const elements = {
   canvas: document.querySelector('#avatar-canvas'),
   video: document.querySelector('#camera-video'),
@@ -53,6 +59,7 @@ const elements = {
   twistValue: document.querySelector('#twist-value'),
 };
 
+// アプリケーションの状態を管理するオブジェクト
 const state = {
   detector: null,
   poseDetector: null,
@@ -62,12 +69,14 @@ const state = {
   armTrackingEnabled: false,
   lastDebugUpdate: 0,
 };
-
+// シーンの初期化とレンダラーの設定を行う関数を呼び出す
 const sceneState = createScene(elements.canvas);
+// レンダリング用のクロックを作成
 const clock = new Clock();
-
+// アプリケーションを起動
 boot();
 
+// アプリケーションの起動処理を実行
 async function boot() {
   resizeRenderer();
   window.addEventListener('resize', resizeRenderer);
@@ -81,6 +90,7 @@ async function boot() {
   await initializeFaceDetector();
 }
 
+// 腕のトラッキングの有効/無効を切り替えるハンドラ
 async function handleArmToggle(event) {
   state.armTrackingEnabled = event.target.checked;
 
@@ -105,61 +115,69 @@ async function handleArmToggle(event) {
   }
 }
 
+// 顔ランドマーク推定器を初期化する関数
 async function initializeFaceDetector() {
   try {
     setText(elements.detectorStatus, 'loading');
-    // TODO: 顔ランドマーク推定器を初期化(非同期): createFaceDetector()
-    state.detector = null;
+    // 顔ランドマーク推定器を初期化(非同期): createFaceDetector()
+    state.detector = await createFaceDetector();
     setText(elements.detectorStatus, 'ready');
   } catch (error) {
     setText(elements.detectorStatus, `error: ${toMessage(error)}`);
   }
 }
 
+// Webカメラ開始
 async function startCamera() {
   try {
     setText(elements.cameraStatus, 'requesting');
-    // TODO: Webカメラを開始(非同期): startCameraStream(): 引数: elements.video
-
+    //  Webカメラを開始(非同期): startCameraStream(): 引数: elements.video
+    await startCameraStream(elements.video);
     setText(elements.cameraStatus, 'running');
   } catch (error) {
     setText(elements.cameraStatus, `error: ${toMessage(error)}`);
   }
 }
 
+// VRM ファイル読み込みハンドラ
 async function handleVrmFile(event) {
+  // 選択されたファイルを取得
   const [file] = event.target.files ?? [];
   if (!file) {
     return;
   }
 
   try {
+    // 既存の VRM があれば削除して破棄
     const vrm = await loadVRM(file);
     if (state.currentVrm) {
       sceneState.root.remove(state.currentVrm.scene);
       disposeObject(state.currentVrm.scene);
     }
-
+    // VRM を顔ステージ用に準備
     prepareVRMForFaceStage(vrm);
-    // TODO: VRM のシーンを 3D 空間に追加: sceneState.root.add(vrm.scene)
-
+    // VRM のシーンを 3D 空間に追加
+    sceneState.root.add(vrm.scene);
     state.currentVrm = vrm;
   } catch (error) {
     alert(`VRMを読み込めませんでした: ${toMessage(error)}`);
   }
 }
 
+// メインのレンダリングループ
 function renderLoop(now) {
+  // フレームの開始時刻を取得
   requestAnimationFrame(renderLoop);
 
-  // TODO: 顔の向き・まばたき・口の形を推定して state.frame に保存
-  // state.frame = getSmoothedFaceFrame({
-  //   detector: state.detector,
-  //   video: elements.video,
-  //   now,
-  //   currentFrame: state.frame,
-  // });
+  // 顔の向き・まばたき・口の形を推定
+  state.frame = getSmoothedFaceFrame({
+    detector: state.detector,
+    video: elements.video,
+    now,
+    currentFrame: state.frame,
+  });
 
+  // 腕のトラッキング結果を取得
   if (state.armTrackingEnabled) {
     state.armFrame = getSmoothedArmFrame({
       detector: state.poseDetector,
@@ -170,8 +188,10 @@ function renderLoop(now) {
   }
 
   if (state.currentVrm) {
-    // TODO: 推定結果を VRM に反映: applyTrackingToVRM(): 引数: state.currentVrm, state.frame
+    // 推定結果を VRM に反映: applyTrackingToVRM(): 引数: state.currentVrm, state.frame
+    applyTrackingToVRM(state.currentVrm, state.frame);
 
+    // 腕のトラッキング結果を VRM に反映
     if (state.armTrackingEnabled) {
       applyArmTrackingToVRM(state.currentVrm, state.armFrame);
     }
@@ -182,6 +202,7 @@ function renderLoop(now) {
   sceneState.renderer.render(sceneState.scene, sceneState.camera);
 }
 
+// VRM のポーズをリセット
 function resetPose() {
   state.frame = structuredClone(DEFAULT_FRAME);
   state.armFrame = structuredClone(DEFAULT_ARM_FRAME);
@@ -196,8 +217,7 @@ function resetPose() {
   applyTrackingToVRM(state.currentVrm, DEFAULT_FRAME);
 }
 
-// カメラやVRMの設置が正面から傾いている場合の手動補正。
-// 押した瞬間の頭・捻りの向きを基準(0)として記録し直す。
+// 現在の頭の向きと肩の捻りを基準(0)として記録
 function calibratePose() {
   resetHeadCalibration();
   if (state.armTrackingEnabled) {
@@ -205,6 +225,7 @@ function calibratePose() {
   }
 }
 
+// 3Dシーンを作成(Three.js)
 function createScene(canvas) {
   const scene = new Scene();
   scene.background = new Color('#181818');
@@ -233,6 +254,7 @@ function createScene(canvas) {
   return { scene, camera, renderer, root };
 }
 
+// レンダラーのサイズ調整
 function resizeRenderer() {
   const width = elements.canvas.clientWidth;
   const height = elements.canvas.clientHeight;
@@ -241,6 +263,7 @@ function resizeRenderer() {
   sceneState.renderer.setSize(width, height, false);
 }
 
+// デバッグパネルの更新
 function updateDebugPanel(now) {
   if (now - state.lastDebugUpdate < 100) {
     return;

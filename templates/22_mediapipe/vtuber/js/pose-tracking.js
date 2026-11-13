@@ -1,9 +1,6 @@
-// 肩と上半身の捻りを Pose で動かす追加機能。
-// face-tracking.js とは独立したファイルにしているので、
-// 不要になれば pose-tracking.js / vrm-arm-pose.js を削除し、
-// main.js / index.html の該当箇所を戻すだけで元の顔トラッキングのみの状態に戻せる。
+// PoseLandmarker をインポート
 import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
-
+// MediaPipe の WASM ベースとモデルアセットのパスを設定
 const MEDIAPIPE_WASM_BASE = new URL('../../vendor/@mediapipe/tasks-vision/wasm', import.meta.url).toString();
 const MEDIAPIPE_MODEL_ASSET = new URL(
   '../../vendor/@mediapipe/models/pose_landmarker.task',
@@ -19,7 +16,7 @@ const LANDMARK_INDEX = {
   leftHip: 23,
   rightHip: 24,
 };
-
+// デフォルトの腕のフレーム情報
 export const DEFAULT_ARM_FRAME = {
   detected: false,
   left: { shoulderDeg: 0 },
@@ -32,16 +29,18 @@ const SMOOTHING = {
   twist: 0.08,
 };
 
-// 捻りは絶対値ではなく「トラッキング開始時の向き」からの相対角度で扱う。
-// z の基準値は人やカメラの位置によって変わるため、キャリブレーションが必要。
+// 肩の捻りの基準角度を保持するための変数
 let twistRestAngle = null;
 
+// 肩の捻りのキャリブレーションをリセット
 export function resetTwistCalibration() {
   twistRestAngle = null;
 }
 
+// 肩の捻りのキャリブレーションを開始
 export async function createPoseDetector() {
   const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_BASE);
+  // PoseLandmarker で姿勢ランドマークを検出インスタンス
   return PoseLandmarker.createFromOptions(vision, {
     baseOptions: { modelAssetPath: MEDIAPIPE_MODEL_ASSET },
     numPoses: 1,
@@ -49,16 +48,19 @@ export async function createPoseDetector() {
   });
 }
 
+// 腕のフレームを滑らかに補間して取得
 export function getSmoothedArmFrame({ detector, video, now, currentFrame }) {
   if (!detector || !isVideoReady(video)) {
     return smoothFrame(currentFrame, DEFAULT_ARM_FRAME);
   }
 
   try {
-    // TODO: 動画フレームから姿勢ランドマークを検出: detector.detectForVideo(): 引数: video, now
-    const result = { landmarks: [] };
+    // 動画フレームから姿勢ランドマークを検出
+    const result = detector.detectForVideo(video, now);
+    // 最初の検出結果のランドマークを取得
     const landmarks = result.landmarks?.[0];
     const nextFrame = landmarks ? analyzeLandmarks(landmarks) : DEFAULT_ARM_FRAME;
+    // 次のフレームを滑らかに補間して返す
     return smoothFrame(currentFrame, nextFrame);
   } catch {
     return smoothFrame(currentFrame, DEFAULT_ARM_FRAME);
@@ -89,37 +91,36 @@ function analyzeLandmarks(landmarks) {
 
   return {
     detected: true,
+    // 左肩の情報
     left: {
-      // 肩(頂点)から見た「腰方向」と「ひじ方向」のなす角。
-      // 腕を体の横に下ろすと小さく、水平に上げると90°付近、真上に上げると180°に近づく。
-      // TODO: angleAt(): 引数: leftHip, leftShoulder, leftElbow
-      shoulderDeg: 0,
+      shoulderDeg: angleAt(leftHip, leftShoulder, leftElbow),
     },
+    // 右肩の情報
     right: {
-      // TODO: angleAt(): 引数: rightHip, rightShoulder, rightElbow
-      shoulderDeg: 0,
+      shoulderDeg: angleAt(rightHip, rightShoulder, rightElbow),
     },
+    // 肩の捻りの情報
     twistRad: calculateTwist(leftShoulder, rightShoulder),
   };
 }
 
-// 左肩→右肩の向きを「画面のx」と「奥行きのz」の平面で見て、
-// カメラの正面から見た肩ラインの回転（=体の捻り）を推定する。
-// 単眼カメラのzは精度が高くないため、大まかな捻り検出として扱う。
+// 左肩と右肩の位置から肩ラインの回転（体の捻り）を計算
 function calculateTwist(leftShoulder, rightShoulder) {
+  // 左肩と右肩のx座標とz座標の差を計算
   const dx = leftShoulder.x - rightShoulder.x;
   const dz = leftShoulder.z - rightShoulder.z;
-  // TODO: 肩ラインの角度を計算: Math.atan2(): 引数: dz, dx
-  const rawAngle = 0;
-
+  //  肩ラインの角度を計算: Math.atan2(): 引数: dz, dx
+  const rawAngle = Math.atan2(dz, dx);
+  // 初回は現在の角度を基準 0
   if (twistRestAngle === null) {
     twistRestAngle = rawAngle;
     return 0;
   }
-
+  // 現在の角度から基準角度を引いて正規化して返す
   return normalizeAngle(rawAngle - twistRestAngle);
 }
 
+// 角度を -π から π の範囲に正規化
 function normalizeAngle(angle) {
   let a = angle % (2 * Math.PI);
   if (a > Math.PI) a -= 2 * Math.PI;
@@ -127,6 +128,7 @@ function normalizeAngle(angle) {
   return a;
 }
 
+// 3点(a, b, c)から、bを頂点とする角度を計算
 function angleAt(a, b, c) {
   const v1 = { x: a.x - b.x, y: a.y - b.y };
   const v2 = { x: c.x - b.x, y: c.y - b.y };
@@ -137,6 +139,7 @@ function angleAt(a, b, c) {
   return (Math.acos(cos) * 180) / Math.PI;
 }
 
+// 現在のフレームと次のフレームを滑らかに補間
 function smoothFrame(current, next) {
   if (!next.detected) {
     return {
@@ -155,6 +158,7 @@ function smoothFrame(current, next) {
   };
 }
 
+// 線形補間
 function lerp(from, to, amount) {
   return from + (to - from) * amount;
 }

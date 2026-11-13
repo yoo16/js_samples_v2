@@ -17,16 +17,19 @@ const NATURAL_ARM_POSE = [
 ];
 
 export async function loadVRM(file) {
+  // GLTFLoader を作成
   const loader = new GLTFLoader();
   loader.register((parser) => new VRMLoaderPlugin(parser));
   const objectUrl = URL.createObjectURL(file);
-
   try {
+    // VRM ファイルを読み込む
     const gltf = await loader.loadAsync(objectUrl);
+    // 読み込んだ GLTF から VRM を取得
     const vrm = gltf.userData.vrm;
     if (!vrm) {
       throw new Error('VRMデータが見つかりません。');
     }
+    // 不要な頂点を削除
     VRMUtils.removeUnnecessaryVertices(gltf.scene);
     return vrm;
   } finally {

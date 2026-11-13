@@ -1,25 +1,21 @@
-// pose-tracking.js の肩の角度・上半身の捻りを VRM のボーン回転に変換する。
-// vrm.js は変更せず、このファイルを削除するだけで機能を無効化できるようにしている。
-//
-// ひじ（LowerArm）は、曲げると手のひらの向きが不自然になったため対象外にしている。
-// ひじを動かすには、手首のロール（前腕のひねり）も別途補正する必要がある。
+// pixiv/three-vrm を使用して VRM モデルの腕のポーズを適用する
 import { VRMHumanBoneName } from '@pixiv/three-vrm';
 
 const DEG2RAD = Math.PI / 180;
 
-// pose-tracking.js の shoulderDeg は、腕を体の横に下ろした状態で約20°、
-// 水平に上げた状態で約90°、真上に上げた状態で約180°になるように設計している。
-const REST_SHOULDER_DEG = 90; // T-pose（腕を水平に伸ばした状態）を基準角度とする
+// T-pose（腕を水平に伸ばした状態）を基準角度とする: 90
+const REST_SHOULDER_DEG = 90;
 
-// 単眼カメラのzの精度は高くないため、捻りは軽めの範囲に制限する。
-const TWIST_MAX_RAD = 0.6; // 約34°
+// ひねりの最大角度を制限 : 約34°
+const TWIST_MAX_RAD = 0.6;
 
-// 実際のVRMモデルで動きが変な方向になる場合は、まずこの符号を反転して試してください。
+// VRM モデルの腕の回転の符号を調整するための定数
 const SIGN = {
   shoulder: { left: 1, right: -1 },
   twist: 1,
 };
 
+// 腕のトラッキング情報を VRM モデルに適用する関数
 export function applyArmTrackingToVRM(vrm, frame) {
   if (!frame.detected) {
     return;
@@ -30,15 +26,17 @@ export function applyArmTrackingToVRM(vrm, frame) {
   setTwist(vrm, frame.twistRad);
 }
 
+// VRM モデルの上腕の回転を設定
 function setUpperArm(vrm, boneName, shoulderDeg, sign) {
   const node = vrm.humanoid?.getNormalizedBoneNode(boneName);
   if (!node) return;
 
-  // TODO: 肩の角度を z 回転（ラジアン）に変換: sign * (REST_SHOULDER_DEG - shoulderDeg) * DEG2RAD
+  // TODO: 肩の角度を z 回転（ラジアン）に変換: sign * (REST_SHOULDER_DEG - shoulderDeg) * DEG2RAD;
   const z = 0;
   node.rotation.set(0, 0, z, 'XYZ');
 }
 
+// VRM モデルの胸の捻り（肩ラインの回転）を設定
 function setTwist(vrm, twistRad) {
   const chest = vrm.humanoid?.getNormalizedBoneNode(VRMHumanBoneName.Chest)
     ?? vrm.humanoid?.getNormalizedBoneNode(VRMHumanBoneName.Spine);
